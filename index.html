@@ -115,7 +115,11 @@
                 const length = parseFloat(sampleAdequacy.length);
                 const sections = parseInt(sampleAdequacy.sections);
                 
-                if (!sampleAdequacy.arterialStructure || length < 10 || sections < 10 || !sampleAdequacy.elasticStain) {
+                // FIX: controllo esplicito per NaN sui campi numerici
+                if (!sampleAdequacy.arterialStructure || 
+                    isNaN(length) || length < 10 || 
+                    isNaN(sections) || sections < 10 || 
+                    !sampleAdequacy.elasticStain) {
                     adequacy = false;
                 }
 
@@ -238,9 +242,10 @@
                 };
             };
 
-            const getIhcRecommendations = () => {
+            // FIX: riceve scores come parametro invece di ricalcolare
+            const getIhcRecommendations = (scores) => {
                 const recommendations = [];
-                const { majorCount, minorCount, compositeScore } = calculateScore();
+                const { majorCount, minorCount, compositeScore } = scores;
                 
                 if (!ihcMarkers.cd68) {
                     if (majorCount === 0 || (majorCount === 1 && minorCount < 3)) {
@@ -319,7 +324,7 @@
 
             const scores = calculateScore();
             const diagnosis = getDiagnosis(scores);
-            const ihcRecommendations = getIhcRecommendations();
+            const ihcRecommendations = getIhcRecommendations(scores);
 
             const resetAll = () => {
                 setSampleAdequacy({
