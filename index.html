@@ -135,15 +135,15 @@
                 if (minorFindings.neovascularization) { histoScore += 5; minorCount++; }
                 if (minorFindings.focalElasticFragmentation) { histoScore += 5; minorCount++; }
 
-                const age = parseInt(clinicalData.age);
+                const age = parseInt(clinicalData.age) || 0;
                 if (age >= 50) clinicalScore += 15;
                 if (age >= 70) clinicalScore += 10;
-                
+
                 if (clinicalData.newHeadache) clinicalScore += 20;
                 if (clinicalData.jawClaudication) clinicalScore += 25;
                 if (clinicalData.visualSymptoms) clinicalScore += 20;
-                
-                const esr = parseInt(clinicalData.esr);
+
+                const esr = parseInt(clinicalData.esr) || 0;
                 if (esr >= 50) clinicalScore += 10;
                 if (esr >= 80) clinicalScore += 10;
                 
@@ -159,11 +159,11 @@
                 }
 
                 const compositeScore = Math.round((histoScore * 0.6) + (clinicalScore * 0.4) - steroidPenalty);
-                
+
                 return {
                     histoScore,
                     clinicalScore,
-                    compositeScore: Math.max(0, compositeScore),
+                    compositeScore: Math.max(0, Math.min(100, compositeScore)),
                     adequacy,
                     steroidPenalty,
                     majorCount: Object.values(majorFindings).filter(Boolean).length,
@@ -403,6 +403,7 @@
                                         <input
                                             type="number"
                                             step="0.5"
+                                            min="0"
                                             value={sampleAdequacy.length}
                                             onChange={(e) => setSampleAdequacy({...sampleAdequacy, length: e.target.value})}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
@@ -416,6 +417,7 @@
                                         </label>
                                         <input
                                             type="number"
+                                            min="0"
                                             value={sampleAdequacy.sections}
                                             onChange={(e) => setSampleAdequacy({...sampleAdequacy, sections: e.target.value})}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
@@ -553,6 +555,7 @@
                                         </label>
                                         <input
                                             type="number"
+                                            min="0"
                                             value={clinicalData.age}
                                             onChange={(e) => setClinicalData({...clinicalData, age: e.target.value})}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
@@ -565,6 +568,7 @@
                                         </label>
                                         <input
                                             type="number"
+                                            min="0"
                                             value={clinicalData.esr}
                                             onChange={(e) => setClinicalData({...clinicalData, esr: e.target.value})}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
@@ -632,6 +636,7 @@
                                             </label>
                                             <input
                                                 type="number"
+                                                min="0"
                                                 value={clinicalData.steroidDays}
                                                 onChange={(e) => setClinicalData({...clinicalData, steroidDays: e.target.value})}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"

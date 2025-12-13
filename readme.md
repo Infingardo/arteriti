@@ -88,6 +88,7 @@ Ignorabile per tool standalone. Non impatta funzionalità.
 
 | Versione | Data | Modifiche |
 |----------|------|-----------|
+| 1.0.2 | 2024-12 | Fix score composito cappato a 100; validazione esplicita NaN su età/VES; aggiunto min="0" agli input numerici |
 | 1.0.1 | 2024-12 | Fix validazione campi numerici vuoti; ottimizzazione calcolo IHC recommendations |
 | 1.0.0 | 2024-10 | Release iniziale |
 
