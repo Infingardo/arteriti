@@ -25,7 +25,6 @@
     <script type="text/babel">
         const { useState } = React;
 
-        // Lucide Icons as React components
         const AlertCircle = ({ className, size = 24 }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <circle cx="12" cy="12" r="10"></circle>
@@ -66,67 +65,58 @@
 
         function GCAScorer() {
             const [sampleAdequacy, setSampleAdequacy] = useState({
-                length: '',
-                arterialStructure: false,
-                sections: '',
-                elasticStain: false
+                length: '', arterialStructure: false, sections: '', elasticStain: false
             });
-
             const [majorFindings, setMajorFindings] = useState({
-                giantCells: false,
-                granulomatous: false,
-                elasticFragmentation: false,
-                transmuralInflammation: false
+                giantCells: false, granulomatous: false, elasticFragmentation: false, transmuralInflammation: false
             });
-
             const [minorFindings, setMinorFindings] = useState({
-                lymphocyticInfiltrate: false,
-                intimalThickening: false,
-                adventitialInflammation: false,
-                neovascularization: false,
-                focalElasticFragmentation: false
+                lymphocyticInfiltrate: false, intimalThickening: false, adventitialInflammation: false,
+                neovascularization: false, focalElasticFragmentation: false
             });
-
             const [clinicalData, setClinicalData] = useState({
-                age: '',
-                newHeadache: false,
-                jawClaudication: false,
-                visualSymptoms: false,
-                esr: '',
-                crp: false,
-                haloSign: false,
-                onSteroids: false,
-                steroidDays: ''
+                age: '', newHeadache: false, jawClaudication: false, visualSymptoms: false,
+                esr: '', crp: false, haloSign: false, onSteroids: false, steroidDays: ''
             });
-
             const [ihcMarkers, setIhcMarkers] = useState({
-                cd68: false,
-                cd4: false,
-                cd8: false,
-                cd3: false,
-                cd20: false
+                cd68: false, cd4: false, cd8: false, cd3: false, cd20: false
             });
 
             const calculateScore = () => {
                 let histoScore = 0;
                 let clinicalScore = 0;
-                let adequacy = true;
 
                 const length = parseFloat(sampleAdequacy.length);
                 const sections = parseInt(sampleAdequacy.sections);
-                
-                // FIX: controllo esplicito per NaN sui campi numerici
-                if (!sampleAdequacy.arterialStructure || 
-                    isNaN(length) || length < 10 || 
-                    isNaN(sections) || sections < 10 || 
-                    !sampleAdequacy.elasticStain) {
-                    adequacy = false;
+
+                // Tre livelli adeguatezza (v2.3):
+                // ADEGUATO: lunghezza >=10mm, sezioni >=10, struttura presente, elastica eseguita
+                // SUBOTTIMALE: lunghezza 5-9mm O sezioni 5-9, struttura presente + elastica
+                // NON VALUTABILE: struttura assente, elastica mancante, frammento <5mm, O campi numerici non compilati
+                // Fix v2.3: NaN (campo vuoto) → inadequate esplicito, non suboptimal per fallthrough
+                let adequacyLevel = 'adequate';
+
+                const lengthMissing = isNaN(length);
+                const sectionsMissing = isNaN(sections);
+
+                if (!sampleAdequacy.arterialStructure || !sampleAdequacy.elasticStain ||
+                    lengthMissing || sectionsMissing ||
+                    length < 5 || sections < 5) {
+                    adequacyLevel = 'inadequate';
+                } else if (length < 10 || sections < 10) {
+                    adequacyLevel = 'suboptimal';
                 }
 
+                const adequacy = adequacyLevel !== 'inadequate';
+
+                // Pesi gerarchizzati per specificità morfologica reale (v2.1)
+                // CG e granulomatosa: specificità >90% per GCA → 25pt
+                // Frammentazione elastica diffusa: specifica solo se associata a infiammazione → 20pt
+                // Transmurale isolata: presente anche in PAN tardiva, ANCA vasculite, IgG4 → 15pt
                 if (majorFindings.giantCells) histoScore += 25;
                 if (majorFindings.granulomatous) histoScore += 25;
-                if (majorFindings.elasticFragmentation) histoScore += 25;
-                if (majorFindings.transmuralInflammation) histoScore += 25;
+                if (majorFindings.elasticFragmentation) histoScore += 20;
+                if (majorFindings.transmuralInflammation) histoScore += 15;
 
                 let minorCount = 0;
                 if (minorFindings.lymphocyticInfiltrate) { histoScore += 5; minorCount++; }
@@ -138,128 +128,132 @@
                 const age = parseInt(clinicalData.age);
                 if (age >= 50) clinicalScore += 15;
                 if (age >= 70) clinicalScore += 10;
-                
                 if (clinicalData.newHeadache) clinicalScore += 20;
                 if (clinicalData.jawClaudication) clinicalScore += 25;
                 if (clinicalData.visualSymptoms) clinicalScore += 20;
-                
+
                 const esr = parseInt(clinicalData.esr);
                 if (esr >= 50) clinicalScore += 10;
                 if (esr >= 80) clinicalScore += 10;
-                
                 if (clinicalData.crp) clinicalScore += 10;
                 if (clinicalData.haloSign) clinicalScore += 15;
 
                 let steroidPenalty = 0;
                 if (clinicalData.onSteroids) {
                     const days = parseInt(clinicalData.steroidDays) || 0;
-                    if (days >= 7) steroidPenalty = 30;
-                    else if (days >= 3) steroidPenalty = 20;
-                    else steroidPenalty = 10;
+                    // Penalità rivista su dati Ing et al. 2023: riduzione progressiva, non crollo a 7gg
+                    if (days > 14) steroidPenalty = 30;
+                    else if (days >= 7) steroidPenalty = 20;
+                    else if (days >= 3) steroidPenalty = 10;
+                    else steroidPenalty = 5;
                 }
 
                 const compositeScore = Math.round((histoScore * 0.6) + (clinicalScore * 0.4) - steroidPenalty);
-                
+
                 return {
-                    histoScore,
-                    clinicalScore,
+                    histoScore, clinicalScore,
                     compositeScore: Math.max(0, compositeScore),
-                    adequacy,
-                    steroidPenalty,
+                    adequacy, adequacyLevel, steroidPenalty,
                     majorCount: Object.values(majorFindings).filter(Boolean).length,
-                    minorCount
+                    minorCount,
+                    hasCoreCriteria: majorFindings.giantCells || majorFindings.granulomatous
                 };
             };
 
             const getDiagnosis = (scores) => {
-                if (!scores.adequacy) {
+                if (scores.adequacyLevel === 'inadequate') {
                     return {
                         category: 'NON VALUTABILE',
                         color: 'bg-gray-100 border-gray-400',
                         icon: <XCircle className="text-gray-600" />,
                         text: 'Campione inadeguato per diagnosi definitiva',
-                        recommendation: 'Si raccomanda nuovo prelievo con segmento ≥10 mm (ottimale 15-20 mm), ≥15 sezioni seriali, colorazione elastica'
+                        recommendation: 'Struttura arteriosa non identificabile o colorazione elastica mancante o frammento <5mm. Si raccomanda nuovo prelievo con segmento >=10mm (ottimale 15-20mm), >=15 sezioni seriali, colorazione elastica.'
                     };
                 }
 
-                const { compositeScore, majorCount, minorCount, steroidPenalty } = scores;
+                const { compositeScore, majorCount, minorCount, steroidPenalty, clinicalScore, hasCoreCriteria, adequacyLevel } = scores;
 
-                if (compositeScore >= 70 && majorCount >= 2) {
+                const suboptimalWarning = adequacyLevel === 'suboptimal'
+                    ? ' | Campione subottimale (<10mm o <10 sezioni): rischio skip lesion aumentato — considerare nuovo prelievo se referto negativo con sospetto clinico elevato.'
+                    : '';
+
+                // CLAUSOLA DIAGNOSTICO: serve score >=70 + >=2 maggiori + almeno CG o granulomatosa
+                // Senza CG/granulomatosa: frammentazione+transmurale in anziano = rischio FP → max "ALTAMENTE SUGGESTIVO"
+                if (compositeScore >= 70 && majorCount >= 2 && hasCoreCriteria) {
                     return {
                         category: 'DIAGNOSTICO',
                         color: 'bg-red-100 border-red-500',
                         icon: <AlertCircle className="text-red-600" />,
-                        text: 'Arterite a cellule giganti (GCA) - DIAGNOSTICO',
-                        probability: '>95%',
-                        recommendation: 'Diagnosi confermata. Procedere con trattamento secondo linee guida.'
+                        text: 'Arterite a cellule giganti (GCA) — DIAGNOSTICO',
+                        concordance: 'Elevata concordanza morfologica e clinica con GCA',
+                        recommendation: 'Reperti morfologici e contesto clinico fortemente concordanti. Procedere con trattamento secondo linee guida. La diagnosi definitiva rimane responsabilita\' del clinico-patologo.' + suboptimalWarning
                     };
                 }
 
-                if (compositeScore >= 55 && (majorCount >= 1 || (minorCount >= 3 && scores.clinicalScore >= 50))) {
+                if (compositeScore >= 55 && (majorCount >= 1 || (minorCount >= 3 && clinicalScore >= 50))) {
                     return {
                         category: 'ALTAMENTE SUGGESTIVO',
                         color: 'bg-orange-100 border-orange-500',
                         icon: <AlertCircle className="text-orange-600" />,
                         text: 'Altamente suggestivo per GCA',
-                        probability: '75-95%',
-                        recommendation: steroidPenalty > 0 
-                            ? 'Reperti compatibili. Nota: biopsia eseguita sotto steroidi (sensibilità ridotta). Considerare imaging aggiuntivo.'
-                            : 'Reperti altamente suggestivi. Correlazione clinico-laboratoristica. Considerare inizio terapia.'
+                        concordance: 'Buona concordanza con GCA',
+                        recommendation: (steroidPenalty > 0
+                            ? 'Reperti compatibili. Nota: biopsia eseguita sotto steroidi (sensibilita\' istologica ridotta gia\' dopo 3-5 gg). Considerare eco-Doppler temporale e/o PET-TC per supporto diagnostico.'
+                            : 'Reperti altamente suggestivi. Correlazione clinico-laboratoristica raccomandata. Considerare inizio terapia contestualmente all\'iter diagnostico.') + suboptimalWarning
                     };
                 }
 
-                if (compositeScore >= 40 && scores.clinicalScore >= 40) {
+                if (compositeScore >= 40 && clinicalScore >= 40) {
                     return {
                         category: 'COMPATIBILE',
                         color: 'bg-yellow-100 border-yellow-500',
                         icon: <Info className="text-yellow-600" />,
                         text: 'Compatibile con GCA (possibile variante senza cellule giganti)',
-                        probability: '50-75%',
-                        recommendation: 'Reperti non diagnostici ma compatibili nel contesto clinico. Raccomandati: imaging avanzato (eco Doppler, PET-TC), eventuale biopsia controlaterale se negatività imaging.'
+                        concordance: 'Concordanza parziale con GCA',
+                        recommendation: 'Reperti non diagnostici ma morfologicamente compatibili nel contesto clinico. Possibile variante senza cellule giganti (20-30% dei casi). Raccomandati: eco-Doppler temporale/ascellare (sensibilita\' ~87% in centri esperti), eventuale PET-TC per valutazione large-vessel, biopsia controlaterale se imaging negativo.' + suboptimalWarning
                     };
                 }
 
                 if (compositeScore >= 25) {
                     return {
-                        category: 'SOSPETTO BASSO',
+                        category: 'BASSA CONCORDANZA',
                         color: 'bg-blue-100 border-blue-400',
                         icon: <Info className="text-blue-600" />,
-                        text: 'Bassa probabilità di GCA',
-                        probability: '25-50%',
-                        recommendation: 'Alterazioni aspecifiche. DD: altre vasculiti, aterosclerosi. Valutare diagnosi alternative.'
+                        text: 'Bassa concordanza con GCA',
+                        concordance: 'Scarsa concordanza con GCA',
+                        recommendation: 'Alterazioni aspecifiche o scarsamente rappresentative. DD principale: vasculite ANCA-associata, arterite di Takayasu (paziente giovane), vasculite IgG4-correlata, aterosclerosi accelerata. Considerare anche: arterite avventiziale isolata (early GCA o fenomeni reattivi periavventiziali — infiltrato confinato all\'avventizia senza coinvolgimento media). Valutare con imaging e sierologia mirata.' + suboptimalWarning
                     };
                 }
 
                 return {
-                    category: 'NEGATIVO',
+                    category: 'NON CONCORDANTE',
                     color: 'bg-green-100 border-green-500',
                     icon: <CheckCircle className="text-green-600" />,
-                    text: 'Negativo per GCA',
-                    probability: '<25%',
-                    recommendation: steroidPenalty > 0
-                        ? 'Negativo, ma biopsia sotto steroidi. Se forte sospetto clinico: imaging, biopsia controlaterale, o proseguire terapia empirica.'
-                        : 'Negativo per GCA. Skip lesions possibili se persistente sospetto clinico elevato.'
+                    text: 'Non concordante con GCA',
+                    concordance: 'Assenza di concordanza con GCA',
+                    recommendation: (steroidPenalty > 0
+                        ? 'Reperti non diagnostici. Attenzione: biopsia eseguita sotto steroidi — sensibilita\' si riduce significativamente gia\' dopo 7-14 gg di terapia. Se sospetto clinico elevato persiste: eco-Doppler temporale bilaterale, biopsia controlaterale, PET-TC, o proseguire terapia empirica con rivalutazione clinica.'
+                        : 'Biopsia negativa per GCA. Ricordare: skip lesions nel ~10-15% dei casi. Se sospetto clinico rimane elevato (claudicatio mascellare, disturbi visivi, VES molto elevata): eco-Doppler temporale bilaterale, biopsia controlaterale, imaging large-vessel. DD: arterite avventiziale isolata se presente solo infiammazione periavventiziale.') + suboptimalWarning
                 };
             };
 
-            // FIX: riceve scores come parametro invece di ricalcolare
             const getIhcRecommendations = (scores) => {
                 const recommendations = [];
                 const { majorCount, minorCount, compositeScore } = scores;
-                
+
                 if (!ihcMarkers.cd68) {
                     if (majorCount === 0 || (majorCount === 1 && minorCount < 3)) {
                         recommendations.push({
                             marker: 'CD68',
                             priority: 'ALTA',
-                            reason: 'Utile per identificare infiltrato macrofagico e granulomi anche quando cellule giganti sono scarse. Sensibilità 69%.',
+                            reason: 'Utile per identificare infiltrato macrofagico e granulomi anche quando le cellule giganti sono scarse o assenti. Positivo nel 94% delle GCA morfologicamente confermate (Ciccia et al., Semin Arthritis Rheum 2023).',
                             color: 'text-red-600'
                         });
-                    } else if (majorCount >= 2) {
+                    } else {
                         recommendations.push({
                             marker: 'CD68',
                             priority: 'OPZIONALE',
-                            reason: 'Reperti maggiori già presenti, ma CD68 può confermare natura macrofagica dell\'infiltrato.',
+                            reason: 'Reperti maggiori gia\' presenti. CD68 puo\' confermare la natura macrofagica dell\'infiltrato e documentare la distribuzione intima-media.',
                             color: 'text-blue-600'
                         });
                     }
@@ -269,7 +263,7 @@
                     recommendations.push({
                         marker: 'CD4',
                         priority: 'MEDIA',
-                        reason: 'Per confermare predominanza T helper nell\'infiltrato linfocitario.',
+                        reason: 'Per confermare la predominanza T helper nella media. In GCA il pattern e\' tipicamente CD4+ predominante con distribuzione intima-media (Weyand & Goronzy, Circ Res 2023).',
                         color: 'text-orange-600'
                     });
                 }
@@ -278,7 +272,7 @@
                     recommendations.push({
                         marker: 'CD8',
                         priority: 'MEDIA',
-                        reason: 'Per calcolare rapporto CD4/CD8 (in GCA tipicamente >2:1). Utile per caratterizzazione completa.',
+                        reason: 'Per calcolare il rapporto CD4/CD8. In GCA il rapporto e\' tipicamente >2:1 nella media; CD8+ predomina nell\'avventizia. Utile per caratterizzazione completa e diagnosi differenziale.',
                         color: 'text-orange-600'
                     });
                 }
@@ -287,7 +281,7 @@
                     recommendations.push({
                         marker: 'CD4 + CD8',
                         priority: 'ALTA',
-                        reason: 'Caso borderline: rapporto CD4/CD8 può aiutare nella diagnosi differenziale.',
+                        reason: 'Caso borderline: il rapporto CD4/CD8 e la distribuzione compartimentale (CD4 in media, CD8 in avventizia) supportano la diagnosi differenziale con altre vasculiti.',
                         color: 'text-red-600'
                     });
                 }
@@ -296,7 +290,7 @@
                     recommendations.push({
                         marker: 'CD4 + CD8',
                         priority: 'ALTA',
-                        reason: 'Biopsia sotto steroidi: caratterizzazione immunologica completa può compensare sensibilità ridotta.',
+                        reason: 'Biopsia sotto steroidi: la caratterizzazione immunologica puo\' compensare parzialmente la riduzione di sensibilita\' morfologica. CD4/CD8 e\' piu\' resistente alla terapia steroidea rispetto alla presenza di cellule giganti.',
                         color: 'text-red-600'
                     });
                 }
@@ -305,7 +299,7 @@
                     recommendations.push({
                         marker: 'CD20',
                         priority: 'MEDIA',
-                        reason: 'Reperti scarsi: escludere altre vasculiti (IgG4-correlata, ANCA-associate) dove linfociti B sono abbondanti.',
+                        reason: 'Reperti scarsi: escludere vasculiti con abbondante componente B (IgG4-correlata, vasculiti ANCA-associate). In GCA il CD20 e\' tipicamente scarso o assente.',
                         color: 'text-orange-600'
                     });
                 }
@@ -314,7 +308,7 @@
                     recommendations.push({
                         marker: 'CD3',
                         priority: 'BASSA',
-                        reason: 'Opzionale: per quantificare popolazione T totale. Utile in casistiche/studi ma non essenziale per diagnosi.',
+                        reason: 'Opzionale: per quantificare la popolazione T totale. Non essenziale per diagnosi routinaria; utile in casistica e studi di correlazione.',
                         color: 'text-gray-600'
                     });
                 }
@@ -327,451 +321,330 @@
             const ihcRecommendations = getIhcRecommendations(scores);
 
             const resetAll = () => {
-                setSampleAdequacy({
-                    length: '',
-                    arterialStructure: false,
-                    sections: '',
-                    elasticStain: false
-                });
-                setMajorFindings({
-                    giantCells: false,
-                    granulomatous: false,
-                    elasticFragmentation: false,
-                    transmuralInflammation: false
-                });
-                setMinorFindings({
-                    lymphocyticInfiltrate: false,
-                    intimalThickening: false,
-                    adventitialInflammation: false,
-                    neovascularization: false,
-                    focalElasticFragmentation: false
-                });
-                setClinicalData({
-                    age: '',
-                    newHeadache: false,
-                    jawClaudication: false,
-                    visualSymptoms: false,
-                    esr: '',
-                    crp: false,
-                    haloSign: false,
-                    onSteroids: false,
-                    steroidDays: ''
-                });
-                setIhcMarkers({
-                    cd68: false,
-                    cd4: false,
-                    cd8: false,
-                    cd3: false,
-                    cd20: false
-                });
+                setSampleAdequacy({ length: '', arterialStructure: false, sections: '', elasticStain: false });
+                setMajorFindings({ giantCells: false, granulomatous: false, elasticFragmentation: false, transmuralInflammation: false });
+                setMinorFindings({ lymphocyticInfiltrate: false, intimalThickening: false, adventitialInflammation: false, neovascularization: false, focalElasticFragmentation: false });
+                setClinicalData({ age: '', newHeadache: false, jawClaudication: false, visualSymptoms: false, esr: '', crp: false, haloSign: false, onSteroids: false, steroidDays: '' });
+                setIhcMarkers({ cd68: false, cd4: false, cd8: false, cd3: false, cd20: false });
             };
 
             return (
                 <div className="max-w-6xl mx-auto p-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+
+                    {/* HEADER */}
                     <div className="bg-white rounded-lg shadow-xl p-6 mb-6">
                         <div className="flex justify-between items-center">
                             <div>
                                 <h1 className="text-3xl font-bold text-indigo-900 mb-2">
-                                    Scoring Diagnostico - Arterite a Cellule Giganti (GCA)
+                                    Scoring Diagnostico — Arterite a Cellule Giganti (GCA)
                                 </h1>
                                 <p className="text-gray-600 text-sm">
-                                    Algoritmo diagnostico integrato: dati istologici + contesto clinico
+                                    Algoritmo di supporto diagnostico integrato: dati istologici + contesto clinico
                                 </p>
                             </div>
-                            <button
-                                onClick={resetAll}
+                            <button onClick={resetAll}
                                 className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200 border border-gray-300"
-                                title="Azzera tutti i campi"
-                            >
+                                title="Azzera tutti i campi">
                                 <RotateCcw size={20} />
                                 <span className="font-medium">Reset</span>
                             </button>
+                        </div>
+                        {/* DISCLAIMER PROMINENTE — CORREZIONE CHIAVE */}
+                        <div className="mt-4 p-3 bg-amber-50 border border-amber-300 rounded-md">
+                            <p className="text-xs text-amber-800">
+                                <strong>Avvertenza metodologica:</strong> Lo scoring composito di questo strumento e\' basato su pesi euristici derivati dalla letteratura e <strong>NON e\' stato validato prospetticamente</strong> su casistica indipendente. I livelli di concordanza indicati sono categorie qualitative di supporto, non probabilita\' calibrate. Questo strumento <strong>non implementa i criteri ACR/EULAR 2023 in senso stretto</strong>, ma ne integra i parametri in un sistema euristico originale. <strong>La diagnosi rimane esclusiva responsabilita\' del patologo e del clinico refertante.</strong>
+                            </p>
                         </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-6">
+
+                            {/* 1. ADEGUATEZZA */}
                             <div className="bg-white rounded-lg shadow-md p-5">
-                                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                                    1. Adeguatezza Campione
-                                </h2>
+                                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">1. Adeguatezza Campione</h2>
                                 <div className="space-y-3">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Lunghezza frammento (mm)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.5"
-                                            value={sampleAdequacy.length}
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Lunghezza frammento (mm)</label>
+                                        <input type="number" step="0.5" value={sampleAdequacy.length}
                                             onChange={(e) => setSampleAdequacy({...sampleAdequacy, length: e.target.value})}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
-                                            placeholder="es. 15"
-                                        />
-                                        <p className="text-xs text-gray-500 mt-1">Minimo 10 mm, ottimale ≥15 mm</p>
+                                            placeholder="es. 15" />
+                                        <p className="text-xs text-gray-500 mt-1">Minimo 10 mm, ottimale &ge;15 mm</p>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Numero sezioni analizzate
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={sampleAdequacy.sections}
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Numero sezioni analizzate</label>
+                                        <input type="number" value={sampleAdequacy.sections}
                                             onChange={(e) => setSampleAdequacy({...sampleAdequacy, sections: e.target.value})}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
-                                            placeholder="es. 15"
-                                        />
+                                            placeholder="es. 15" />
+                                        <p className="text-xs text-gray-500 mt-1">Minimo 10, raccomandato &ge;15 sezioni seriali</p>
                                     </div>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={sampleAdequacy.arterialStructure}
+                                        <input type="checkbox" checked={sampleAdequacy.arterialStructure}
                                             onChange={(e) => setSampleAdequacy({...sampleAdequacy, arterialStructure: e.target.checked})}
-                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                                        />
-                                        <span className="text-sm text-gray-700">Struttura arteriosa presente</span>
+                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                                        <span className="text-sm text-gray-700">Struttura arteriosa presente (intima-media-avventizia identificabili)</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={sampleAdequacy.elasticStain}
+                                        <input type="checkbox" checked={sampleAdequacy.elasticStain}
                                             onChange={(e) => setSampleAdequacy({...sampleAdequacy, elasticStain: e.target.checked})}
-                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                                        />
-                                        <span className="text-sm text-gray-700">Colorazione elastica eseguita</span>
+                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                                        <span className="text-sm text-gray-700">Colorazione elastica eseguita (Verhoeff-Van Gieson o equivalente)</span>
                                     </label>
                                 </div>
                             </div>
 
+                            {/* 2. REPERTI MAGGIORI */}
                             <div className="bg-white rounded-lg shadow-md p-5">
                                 <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
                                     2. Reperti Istologici Maggiori
-                                    <span className="text-sm font-normal text-gray-500 ml-2">(25 punti ciascuno)</span>
+                                    <span className="text-sm font-normal text-gray-500 ml-2">(pesi gerarchizzati per specificità)</span>
                                 </h2>
                                 <div className="space-y-2">
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={majorFindings.giantCells}
+                                        <input type="checkbox" checked={majorFindings.giantCells}
                                             onChange={(e) => setMajorFindings({...majorFindings, giantCells: e.target.checked})}
-                                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
-                                        />
-                                        <span className="text-sm text-gray-700">Cellule giganti multinucleate (giunzione intima-media)</span>
+                                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500" />
+                                        <span className="text-sm text-gray-700">Cellule giganti multinucleate (giunzione intima-media) <span className="text-xs font-semibold text-red-600 ml-1">25 pt</span></span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={majorFindings.granulomatous}
+                                        <input type="checkbox" checked={majorFindings.granulomatous}
                                             onChange={(e) => setMajorFindings({...majorFindings, granulomatous: e.target.checked})}
-                                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
-                                        />
-                                        <span className="text-sm text-gray-700">Infiammazione granulomatosa organizzata</span>
+                                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500" />
+                                        <span className="text-sm text-gray-700">
+                                            Aggregati macrofagici organizzati centrati sulla IEL con distruzione elastica
+                                            <span className="text-xs font-semibold text-red-600 ml-1">25 pt</span>
+                                            <span className="text-xs text-gray-400 ml-1">— non semplice infiltrato macrofagico diffuso</span>
+                                        </span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={majorFindings.elasticFragmentation}
+                                        <input type="checkbox" checked={majorFindings.elasticFragmentation}
                                             onChange={(e) => setMajorFindings({...majorFindings, elasticFragmentation: e.target.checked})}
-                                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
-                                        />
-                                        <span className="text-sm text-gray-700">Frammentazione elastica diffusa (più del 30% circonferenza)</span>
+                                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500" />
+                                        <span className="text-sm text-gray-700">
+                                            Frammentazione elastica diffusa (&gt;30%) con infiammazione attiva associata
+                                            <span className="text-xs font-semibold text-orange-600 ml-1">20 pt</span>
+                                            <span className="text-xs text-gray-400 ml-1">— non valutare in assenza di infiltrato infiammatorio</span>
+                                        </span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={majorFindings.transmuralInflammation}
+                                        <input type="checkbox" checked={majorFindings.transmuralInflammation}
                                             onChange={(e) => setMajorFindings({...majorFindings, transmuralInflammation: e.target.checked})}
-                                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
-                                        />
-                                        <span className="text-sm text-gray-700">Infiammazione transmurale</span>
+                                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500" />
+                                        <span className="text-sm text-gray-700">
+                                            Infiammazione transmurale (tutti e tre gli strati)
+                                            <span className="text-xs font-semibold text-yellow-600 ml-1">15 pt</span>
+                                            <span className="text-xs text-gray-400 ml-1">— presente anche in PAN tardiva, vasculiti ANCA, IgG4</span>
+                                        </span>
                                     </label>
+                                </div>
+                                <div className="mt-3 p-2 bg-red-50 rounded text-xs text-red-700">
+                                    Per categoria <strong>DIAGNOSTICO</strong> e\' richiesta la presenza di almeno cellule giganti o granulomatosa organizzata. Frammentazione + transmurale isolate → max "ALTAMENTE SUGGESTIVO".
                                 </div>
                             </div>
 
+                            {/* 3. REPERTI MINORI */}
                             <div className="bg-white rounded-lg shadow-md p-5">
                                 <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
                                     3. Reperti Istologici Minori
-                                    <span className="text-sm font-normal text-gray-500 ml-2">(5 punti ciascuno)</span>
+                                    <span className="text-sm font-normal text-gray-500 ml-2">(5 punti ciascuno — aumentano sensibilita\')</span>
                                 </h2>
                                 <div className="space-y-2">
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={minorFindings.lymphocyticInfiltrate}
+                                        <input type="checkbox" checked={minorFindings.lymphocyticInfiltrate}
                                             onChange={(e) => setMinorFindings({...minorFindings, lymphocyticInfiltrate: e.target.checked})}
-                                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
-                                        />
-                                        <span className="text-sm text-gray-700">Infiltrato linfocitario CD4+ predominante</span>
+                                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500" />
+                                        <span className="text-sm text-gray-700">
+                                            Infiltrato linfocitario medio-intimale
+                                            <span className="text-xs text-gray-400 ml-1">— valutazione H&E; caratterizzazione CD4/CD8 nel blocco IHC</span>
+                                        </span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={minorFindings.intimalThickening}
+                                        <input type="checkbox" checked={minorFindings.intimalThickening}
                                             onChange={(e) => setMinorFindings({...minorFindings, intimalThickening: e.target.checked})}
-                                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
-                                        />
+                                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500" />
                                         <span className="text-sm text-gray-700">Ispessimento intimale concentrico significativo</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={minorFindings.adventitialInflammation}
+                                        <input type="checkbox" checked={minorFindings.adventitialInflammation}
                                             onChange={(e) => setMinorFindings({...minorFindings, adventitialInflammation: e.target.checked})}
-                                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
-                                        />
+                                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500" />
                                         <span className="text-sm text-gray-700">Infiammazione avventiziale/periavventiziale</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={minorFindings.neovascularization}
+                                        <input type="checkbox" checked={minorFindings.neovascularization}
                                             onChange={(e) => setMinorFindings({...minorFindings, neovascularization: e.target.checked})}
-                                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
-                                        />
+                                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500" />
                                         <span className="text-sm text-gray-700">Neovascolarizzazione della parete</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={minorFindings.focalElasticFragmentation}
+                                        <input type="checkbox" checked={minorFindings.focalElasticFragmentation}
                                             onChange={(e) => setMinorFindings({...minorFindings, focalElasticFragmentation: e.target.checked})}
-                                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
-                                        />
-                                        <span className="text-sm text-gray-700">Frammentazione elastica focale (meno del 30%) con infiammazione</span>
+                                            className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500" />
+                                        <span className="text-sm text-gray-700">Frammentazione elastica focale (&lt;30%) con infiammazione associata</span>
                                     </label>
                                 </div>
                             </div>
 
+                            {/* 4. DATI CLINICI */}
                             <div className="bg-white rounded-lg shadow-md p-5">
-                                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                                    4. Dati Clinici
-                                </h2>
+                                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">4. Dati Clinici</h2>
                                 <div className="space-y-3">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Età paziente (anni)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={clinicalData.age}
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Eta\' paziente (anni)</label>
+                                        <input type="number" value={clinicalData.age}
                                             onChange={(e) => setClinicalData({...clinicalData, age: e.target.value})}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
-                                            placeholder="es. 72"
-                                        />
+                                            placeholder="es. 72" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            VES (mm/h)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={clinicalData.esr}
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">VES (mm/h)</label>
+                                        <input type="number" value={clinicalData.esr}
                                             onChange={(e) => setClinicalData({...clinicalData, esr: e.target.value})}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
-                                            placeholder="es. 95"
-                                        />
+                                            placeholder="es. 95" />
                                     </div>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={clinicalData.newHeadache}
+                                        <input type="checkbox" checked={clinicalData.newHeadache}
                                             onChange={(e) => setClinicalData({...clinicalData, newHeadache: e.target.checked})}
-                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                                        />
+                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
                                         <span className="text-sm text-gray-700">Cefalea di nuova insorgenza</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={clinicalData.jawClaudication}
+                                        <input type="checkbox" checked={clinicalData.jawClaudication}
                                             onChange={(e) => setClinicalData({...clinicalData, jawClaudication: e.target.checked})}
-                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                                        />
+                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
                                         <span className="text-sm text-gray-700">Claudicatio mascellare</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={clinicalData.visualSymptoms}
+                                        <input type="checkbox" checked={clinicalData.visualSymptoms}
                                             onChange={(e) => setClinicalData({...clinicalData, visualSymptoms: e.target.checked})}
-                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                                        />
-                                        <span className="text-sm text-gray-700">Disturbi visivi</span>
+                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                                        <span className="text-sm text-gray-700">Disturbi visivi (amaurosi fugace, diplopia, perdita visus)</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={clinicalData.crp}
+                                        <input type="checkbox" checked={clinicalData.crp}
                                             onChange={(e) => setClinicalData({...clinicalData, crp: e.target.checked})}
-                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                                        />
+                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
                                         <span className="text-sm text-gray-700">PCR elevata</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={clinicalData.haloSign}
+                                        <input type="checkbox" checked={clinicalData.haloSign}
                                             onChange={(e) => setClinicalData({...clinicalData, haloSign: e.target.checked})}
-                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                                        />
-                                        <span className="text-sm text-gray-700">Halo sign ecografico positivo</span>
+                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                                        <span className="text-sm text-gray-700">Halo sign ecografico positivo (eco-Doppler temporale)</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={clinicalData.onSteroids}
+                                        <input type="checkbox" checked={clinicalData.onSteroids}
                                             onChange={(e) => setClinicalData({...clinicalData, onSteroids: e.target.checked})}
-                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                                        />
-                                        <span className="text-sm text-gray-700">Terapia steroidea già iniziata</span>
+                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                                        <span className="text-sm text-gray-700">Terapia steroidea gia\' iniziata</span>
                                     </label>
                                     {clinicalData.onSteroids && (
                                         <div className="ml-6">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Giorni di terapia steroidea
-                                            </label>
-                                            <input
-                                                type="number"
-                                                value={clinicalData.steroidDays}
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Giorni di terapia steroidea</label>
+                                            <input type="number" value={clinicalData.steroidDays}
                                                 onChange={(e) => setClinicalData({...clinicalData, steroidDays: e.target.value})}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
-                                                placeholder="es. 5"
-                                            />
+                                                placeholder="es. 5" />
+                                            <p className="text-xs text-gray-500 mt-1">Sensibilita\' bioptica ridotta gia\' dopo 3-5 gg; sostanzialmente ridotta dopo 14 gg (Ing et al. 2023)</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
+                            {/* 5. IHC */}
                             <div className="bg-white rounded-lg shadow-md p-5">
-                                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                                    5. Marker Immunoistochimici Eseguiti
-                                </h2>
+                                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">5. Marker Immunoistochimici Eseguiti</h2>
                                 <div className="space-y-2">
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={ihcMarkers.cd68}
+                                        <input type="checkbox" checked={ihcMarkers.cd68}
                                             onChange={(e) => setIhcMarkers({...ihcMarkers, cd68: e.target.checked})}
-                                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                                        />
-                                        <span className="text-sm text-gray-700">
-                                            <strong>CD68</strong> (macrofagi)
-                                        </span>
+                                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
+                                        <span className="text-sm text-gray-700"><strong>CD68</strong> (macrofagi/cellule giganti)</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={ihcMarkers.cd4}
+                                        <input type="checkbox" checked={ihcMarkers.cd4}
                                             onChange={(e) => setIhcMarkers({...ihcMarkers, cd4: e.target.checked})}
-                                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                                        />
-                                        <span className="text-sm text-gray-700">
-                                            <strong>CD4</strong> (T helper)
-                                        </span>
+                                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
+                                        <span className="text-sm text-gray-700"><strong>CD4</strong> (T helper — predominante in media)</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={ihcMarkers.cd8}
+                                        <input type="checkbox" checked={ihcMarkers.cd8}
                                             onChange={(e) => setIhcMarkers({...ihcMarkers, cd8: e.target.checked})}
-                                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                                        />
-                                        <span className="text-sm text-gray-700">
-                                            <strong>CD8</strong> (T citotossici)
-                                        </span>
+                                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
+                                        <span className="text-sm text-gray-700"><strong>CD8</strong> (T citotossici — predominante in avventizia)</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={ihcMarkers.cd3}
+                                        <input type="checkbox" checked={ihcMarkers.cd3}
                                             onChange={(e) => setIhcMarkers({...ihcMarkers, cd3: e.target.checked})}
-                                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                                        />
-                                        <span className="text-sm text-gray-700">
-                                            <strong>CD3</strong> (pan-T)
-                                        </span>
+                                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
+                                        <span className="text-sm text-gray-700"><strong>CD3</strong> (pan-T)</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={ihcMarkers.cd20}
+                                        <input type="checkbox" checked={ihcMarkers.cd20}
                                             onChange={(e) => setIhcMarkers({...ihcMarkers, cd20: e.target.checked})}
-                                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                                        />
-                                        <span className="text-sm text-gray-700">
-                                            <strong>CD20</strong> (linfociti B)
-                                        </span>
+                                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
+                                        <span className="text-sm text-gray-700"><strong>CD20</strong> (linfociti B — tipicamente assenti in GCA)</span>
                                     </label>
                                 </div>
                                 <div className="mt-4 p-3 bg-purple-50 rounded-md">
                                     <p className="text-xs text-purple-800">
-                                        <strong>💡 Nota:</strong> Spunta i marker già eseguiti. L'algoritmo suggerirà eventuali marker aggiuntivi utili per la diagnosi.
+                                        Selezionare i marker gia\' eseguiti. L\'algoritmo suggeri\' eventuali integrazioni utili per la caratterizzazione diagnostica.
                                     </p>
                                 </div>
                             </div>
                         </div>
 
+                        {/* COLONNA DESTRA — RISULTATI */}
                         <div className="space-y-6">
+
+                            {/* PUNTEGGI */}
                             <div className="bg-white rounded-lg shadow-md p-5">
-                                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                                    Punteggi
-                                </h2>
+                                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Punteggi</h2>
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center">
                                         <span className="text-gray-700">Score Istologico:</span>
                                         <span className="text-2xl font-bold text-red-600">{scores.histoScore}/100</span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-3">
-                                        <div 
-                                            className="bg-red-500 h-3 rounded-full transition-all duration-500"
-                                            style={{width: `${scores.histoScore}%`}}
-                                        />
+                                        <div className="bg-red-500 h-3 rounded-full transition-all duration-500" style={{width: `${scores.histoScore}%`}} />
                                     </div>
-                                    
                                     <div className="flex justify-between items-center mt-4">
                                         <span className="text-gray-700">Score Clinico:</span>
                                         <span className="text-2xl font-bold text-blue-600">{scores.clinicalScore}/100</span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-3">
-                                        <div 
-                                            className="bg-blue-500 h-3 rounded-full transition-all duration-500"
-                                            style={{width: `${scores.clinicalScore}%`}}
-                                        />
+                                        <div className="bg-blue-500 h-3 rounded-full transition-all duration-500" style={{width: `${scores.clinicalScore}%`}} />
                                     </div>
-
                                     {scores.steroidPenalty > 0 && (
                                         <div className="bg-yellow-50 border border-yellow-300 rounded-md p-3 mt-4">
                                             <p className="text-sm text-yellow-800">
-                                                ⚠️ Penalità per terapia steroidea: -{scores.steroidPenalty} punti
+                                                Penalita\' per terapia steroidea: -{scores.steroidPenalty} punti (sensibilita\' bioptica ridotta)
                                             </p>
                                         </div>
                                     )}
-
                                     <div className="flex justify-between items-center mt-4 pt-4 border-t-2 border-gray-300">
                                         <span className="text-gray-900 font-semibold">Score Composito:</span>
                                         <span className="text-3xl font-bold text-indigo-600">{scores.compositeScore}/100</span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-4">
-                                        <div 
-                                            className="bg-gradient-to-r from-indigo-500 to-purple-600 h-4 rounded-full transition-all duration-500"
-                                            style={{width: `${scores.compositeScore}%`}}
-                                        />
+                                        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 h-4 rounded-full transition-all duration-500" style={{width: `${scores.compositeScore}%`}} />
                                     </div>
+                                    <p className="text-xs text-gray-400 mt-1">60% istologia + 40% clinica — pesi euristici, non validati prospetticamente</p>
                                 </div>
                             </div>
 
+                            {/* BOX RISULTATO — "probabilita'" eliminate, sostituite con "concordanza" */}
                             <div className={`rounded-lg shadow-lg p-6 border-2 ${diagnosis.color}`}>
                                 <div className="flex items-start space-x-4">
-                                    <div className="flex-shrink-0 mt-1">
-                                        {diagnosis.icon}
-                                    </div>
+                                    <div className="flex-shrink-0 mt-1">{diagnosis.icon}</div>
                                     <div className="flex-1">
                                         <h3 className="text-xl font-bold mb-2">{diagnosis.category}</h3>
-                                        <p className="text-lg font-semibold mb-2">{diagnosis.text}</p>
-                                        {diagnosis.probability && (
-                                            <p className="text-sm font-medium mb-3">
-                                                Probabilità stimata: <span className="font-bold">{diagnosis.probability}</span>
-                                            </p>
+                                        <p className="text-lg font-semibold mb-1">{diagnosis.text}</p>
+                                        {diagnosis.concordance && (
+                                            <p className="text-sm font-medium mb-3 italic text-gray-700">{diagnosis.concordance}</p>
                                         )}
                                         <div className="bg-white bg-opacity-50 rounded-md p-3 mt-3">
                                             <p className="text-sm font-medium">Raccomandazione:</p>
@@ -781,10 +654,9 @@
                                 </div>
                             </div>
 
+                            {/* RIEPILOGO */}
                             <div className="bg-white rounded-lg shadow-md p-5">
-                                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                                    Riepilogo Reperti
-                                </h2>
+                                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Riepilogo Reperti</h2>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-gray-700">Reperti maggiori presenti:</span>
@@ -795,18 +667,30 @@
                                         <span className="font-bold text-orange-600">{scores.minorCount}/5</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-700">Campione adeguato:</span>
-                                        <span className={`font-bold ${scores.adequacy ? 'text-green-600' : 'text-red-600'}`}>
-                                            {scores.adequacy ? 'SÌ' : 'NO'}
+                                        <span className="text-gray-700">Core criteria (CG o granulomatosa):</span>
+                                        <span className={`font-bold ${scores.hasCoreCriteria ? 'text-green-600' : 'text-gray-400'}`}>
+                                            {scores.hasCoreCriteria ? 'PRESENTE' : 'ASSENTE'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-700">Adeguatezza campione:</span>
+                                        <span className={`font-bold ${scores.adequacyLevel === 'adequate' ? 'text-green-600' : scores.adequacyLevel === 'suboptimal' ? 'text-yellow-600' : 'text-red-600'}`}>
+                                            {scores.adequacyLevel === 'adequate' ? 'ADEGUATO' : scores.adequacyLevel === 'suboptimal' ? 'SUBOTTIMALE' : 'NON VALUTABILE'}
                                         </span>
                                     </div>
                                 </div>
+                                {scores.adequacyLevel === 'suboptimal' && (
+                                    <div className="mt-3 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs text-yellow-800">
+                                        Campione subottimale: rischio skip lesion aumentato. Referto negativo con sospetto clinico elevato → considerare nuovo prelievo.
+                                    </div>
+                                )}
                             </div>
 
+                            {/* RACCOMANDAZIONI IHC */}
                             {ihcRecommendations.length > 0 && (
                                 <div className="bg-white rounded-lg shadow-md p-5">
                                     <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                                        🔬 Raccomandazioni Immunoistochimica
+                                        Raccomandazioni Immunoistochimica
                                     </h2>
                                     <div className="space-y-3">
                                         {ihcRecommendations.map((rec, index) => (
@@ -814,12 +698,10 @@
                                                 <div className="flex items-center justify-between mb-1">
                                                     <span className="font-bold text-gray-800">{rec.marker}</span>
                                                     <span className={`text-xs font-semibold px-2 py-1 rounded ${rec.color} ${
-                                                        rec.priority === 'ALTA' ? 'bg-red-100' : 
-                                                        rec.priority === 'MEDIA' ? 'bg-orange-100' : 
+                                                        rec.priority === 'ALTA' ? 'bg-red-100' :
+                                                        rec.priority === 'MEDIA' ? 'bg-orange-100' :
                                                         'bg-gray-100'
-                                                    }`}>
-                                                        {rec.priority}
-                                                    </span>
+                                                    }`}>{rec.priority}</span>
                                                 </div>
                                                 <p className="text-sm text-gray-700">{rec.reason}</p>
                                             </div>
@@ -828,329 +710,175 @@
                                 </div>
                             )}
 
+                            {/* PANNELLI IHC */}
                             <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-5">
-                                <h3 className="font-bold text-purple-900 mb-3">📋 Pannelli IHC Standard</h3>
-                                
+                                <h3 className="font-bold text-purple-900 mb-3">Pannelli IHC Standard</h3>
                                 <div className="space-y-3 text-sm">
                                     <div className="bg-white rounded-md p-3 border-l-4 border-green-500">
-                                        <p className="font-bold text-green-800 mb-1">PANNELLO BASE (sufficiente in maggioranza casi)</p>
+                                        <p className="font-bold text-green-800 mb-1">PANNELLO BASE</p>
                                         <ul className="text-gray-700 ml-4 space-y-1">
-                                            <li>• H&E + colorazione elastica (obbligatorio)</li>
-                                            <li>• Campione ≥10 mm, ottimale 15-20 mm</li>
-                                            <li>• <strong>CD68</strong> (macrofagi) - quasi indispensabile</li>
-                                            <li>• CD4 opzionale se reperti maggiori presenti</li>
+                                            <li>H&amp;E + colorazione elastica (VVG o equivalente) — obbligatorio</li>
+                                            <li>Campione &ge;10 mm, ottimale 15-20 mm</li>
+                                            <li><strong>CD68</strong> — quasi indispensabile per infiltrato macrofagico</li>
+                                            <li>CD4 opzionale se reperti maggiori presenti</li>
                                         </ul>
                                     </div>
-
                                     <div className="bg-white rounded-md p-3 border-l-4 border-orange-500">
-                                        <p className="font-bold text-orange-800 mb-1">PANNELLO COMPLETO (casi difficili/borderline)</p>
+                                        <p className="font-bold text-orange-800 mb-1">PANNELLO COMPLETO (casi borderline / biopsia sotto steroidi)</p>
                                         <ul className="text-gray-700 ml-4 space-y-1">
-                                            <li>• <strong>CD68</strong> + <strong>CD4</strong> + <strong>CD8</strong> (rapporto CD4/CD8)</li>
-                                            <li>• <strong>CD20</strong> (escludere altre vasculiti)</li>
-                                            <li>• CD3 opzionale (pan-T per quantificazione)</li>
+                                            <li><strong>CD68</strong> + <strong>CD4</strong> + <strong>CD8</strong></li>
+                                            <li>Valutare distribuzione compartimentale: CD4 in media, CD8 in avventizia (pattern GCA)</li>
+                                            <li><strong>CD20</strong> per escludere vasculiti IgG4-correlata, ANCA-associate</li>
+                                            <li>CD3 opzionale (pan-T, non essenziale per diagnosi routinaria)</li>
                                         </ul>
                                     </div>
-
                                     <div className="bg-white rounded-md p-3 border-l-4 border-blue-500">
-                                        <p className="font-bold text-blue-800 mb-1">Performance diagnostica (letteratura)</p>
+                                        <p className="font-bold text-blue-800 mb-1">Performance diagnostica IHC (letteratura)</p>
                                         <ul className="text-gray-700 ml-4 space-y-1">
-                                            <li>• CD68: sensibilità 69%, specificità 86%</li>
-                                            <li>• Positivo nel 94% dei casi confermati</li>
-                                            <li>• CD4/CD8 in GCA: rapporto tipico maggiore di 2:1</li>
-                                            <li>• CD20: scarso/assente in GCA (se abbondante → ripensare diagnosi)</li>
+                                            <li><strong>CD68:</strong> positivo nel 94% delle GCA morfologicamente confermate (Ciccia et al. 2023). Sensibilita\' come test isolato in fase iniziale: 69%. <em>Attenzione: CD68 e\' sensibile ma non specifico — macrofagi abbondanti anche in altre vasculiti. Il valore diagnostico di CD68 e\' massimo nel contesto morfologico, non come marker isolato.</em></li>
+                                            <li>Rapporto CD4/CD8 in GCA: predominanza CD4 nella media, CD8 in avventizia (Weyand &amp; Goronzy, Circ Res 2023) — valutare come distribuzione compartimentale, non come soglia numerica rigida</li>
+                                            <li>CD20: scarso/assente in GCA — se abbondante, riconsiderare diagnosi</li>
                                         </ul>
                                     </div>
                                 </div>
                             </div>
 
+                            {/* NOTE METODOLOGICHE */}
                             <div className="bg-indigo-50 rounded-lg p-5 text-sm">
-                                <h3 className="font-bold text-indigo-900 mb-2">📚 Note metodologiche</h3>
+                                <h3 className="font-bold text-indigo-900 mb-2">Note metodologiche (v2.2)</h3>
                                 <ul className="space-y-1 text-indigo-800">
-                                    <li>• Score composito: 60% istologia + 40% clinica</li>
-                                    <li>• Reperti maggiori: specificità maggiore di 90% (25 pt ciascuno)</li>
-                                    <li>• Reperti minori: sensibilità aumentata (5 pt ciascuno)</li>
-                                    <li>• Steroidi riducono sensibilità bioptica anche dopo 3-5 giorni</li>
-                                    <li>• Skip lesions: presenti in circa 10-15% dei casi</li>
-                                    <li>• Varianti senza cellule giganti: 20-30% dei casi confermati</li>
+                                    <li>Pesi gerarchizzati: CG/granulomatosa 25pt, elastica diffusa 20pt, transmurale 15pt</li>
+                                    <li>Categoria DIAGNOSTICO: richiede almeno CG o granulomatosa organizzata</li>
+                                    <li>Frammentazione elastica: valutare solo se associata a infiltrato infiammatorio attivo</li>
+                                    <li>Reperto minore linfocitario: valutazione H&E (medio-intimale); caratterizzazione CD4/CD8 → blocco IHC</li>
+                                    <li>Adeguatezza: tre livelli — ADEGUATO / SUBOTTIMALE (5-9mm o 5-9 sezioni) / NON VALUTABILE</li>
+                                    <li>Penalita\' steroidi: -5pt (&lt;3gg), -10pt (3-7gg), -20pt (7-14gg), -30pt (&gt;14gg)</li>
+                                    <li><strong>Limite noto del modello lineare 60/40:</strong> caso con clinica esplosiva (score &gt;80) e istologia borderline (score 30) ottiene composite ~52 → "Compatibile". Clinicamente potrebbe essere trattato come GCA certa. Il modello non gestisce questa asimmetria biologica — in tali casi il giudizio clinico prevale sull\'algoritmo.</li>
+                                    <li>I livelli di concordanza NON sono probabilita\' calibrate</li>
+                                    <li>Questo strumento NON implementa i criteri ACR/EULAR 2023 in senso stretto</li>
                                 </ul>
                             </div>
                         </div>
                     </div>
 
+                    {/* BIBLIOGRAFIA */}
                     <div className="mt-6 bg-white rounded-lg shadow-md p-6">
                         <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b-2 border-indigo-200 pb-2">
-                            📚 Bibliografia di Riferimento
+                            Bibliografia di Riferimento
                         </h2>
-                        
                         <div className="space-y-4 text-sm">
                             <div>
                                 <h3 className="font-bold text-indigo-900 mb-2">Criteri diagnostici e linee guida</h3>
                                 <ul className="space-y-2 text-gray-700">
                                     <li className="pl-4 border-l-2 border-indigo-300">
-                                        <strong>Ponte C, Martínez-Morillo M, Koster MJ, et al.</strong> (2024). 
-                                        2023 ACR/EULAR classification criteria for giant cell arteritis. 
-                                        <em>Arthritis Rheumatol.</em> 76(9):1343-1352. 
-                                        <a 
-                                            href="https://doi.org/10.1002/art.42624" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-indigo-600 hover:text-indigo-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1002/art.42624
-                                        </a>
+                                        <strong>Ponte C, Martínez-Morillo M, Koster MJ, et al.</strong> (2024). 2023 ACR/EULAR classification criteria for giant cell arteritis. <em>Arthritis Rheumatol.</em> 76(9):1343-1352.
+                                        <a href="https://doi.org/10.1002/art.42624" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline text-xs ml-2">DOI: 10.1002/art.42624</a>
                                     </li>
                                     <li className="pl-4 border-l-2 border-indigo-300">
-                                        <strong>Dejaco C, Ramiro S, Duftner C, et al.</strong> (2023). 
-                                        EULAR recommendations for the use of imaging in large vessel vasculitis in clinical practice: 2023 update. 
-                                        <em>Ann Rheum Dis.</em> 82(10):1283-1297.
-                                        <a 
-                                            href="https://doi.org/10.1136/ard-2023-224543" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-indigo-600 hover:text-indigo-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1136/ard-2023-224543
-                                        </a>
+                                        <strong>Dejaco C, Ramiro S, Duftner C, et al.</strong> (2023). EULAR recommendations for the use of imaging in large vessel vasculitis in clinical practice: 2023 update. <em>Ann Rheum Dis.</em> 82(10):1283-1297.
+                                        <a href="https://doi.org/10.1136/ard-2023-224543" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline text-xs ml-2">DOI: 10.1136/ard-2023-224543</a>
                                     </li>
                                     <li className="pl-4 border-l-2 border-indigo-300">
-                                        <strong>Hellmich B, Agueda A, Monti S, et al.</strong> (2020). 
-                                        2018 Update of the EULAR recommendations for the management of large vessel vasculitis. 
-                                        <em>Ann Rheum Dis.</em> 79(1):19-30.
-                                        <a 
-                                            href="https://doi.org/10.1136/annrheumdis-2019-215672" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-indigo-600 hover:text-indigo-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1136/annrheumdis-2019-215672
-                                        </a>
+                                        <strong>Hellmich B, Agueda A, Monti S, et al.</strong> (2020). 2018 Update of the EULAR recommendations for the management of large vessel vasculitis. <em>Ann Rheum Dis.</em> 79(1):19-30.
+                                        <a href="https://doi.org/10.1136/annrheumdis-2019-215672" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline text-xs ml-2">DOI: 10.1136/annrheumdis-2019-215672</a>
                                     </li>
                                 </ul>
                             </div>
-
                             <div>
                                 <h3 className="font-bold text-indigo-900 mb-2">Caratteristiche istopatologiche</h3>
                                 <ul className="space-y-2 text-gray-700">
                                     <li className="pl-4 border-l-2 border-red-300">
-                                        <strong>Watanabe R, Zhang H, Berry GJ, et al.</strong> (2024). 
-                                        Immune checkpoint dysfunction in giant cell arteritis. 
-                                        <em>J Exp Med.</em> 221(5):e20231938.
-                                        <a 
-                                            href="https://doi.org/10.1084/jem.20231938" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-red-600 hover:text-red-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1084/jem.20231938
-                                        </a>
+                                        <strong>Watanabe R, Zhang H, Berry GJ, et al.</strong> (2024). Immune checkpoint dysfunction in giant cell arteritis. <em>J Exp Med.</em> 221(5):e20231938.
+                                        <a href="https://doi.org/10.1084/jem.20231938" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline text-xs ml-2">DOI: 10.1084/jem.20231938</a>
                                     </li>
                                     <li className="pl-4 border-l-2 border-red-300">
-                                        <strong>Ciccia F, Rizzo A, Guggino G, et al.</strong> (2023). 
-                                        Histological and immunohistochemical characterization of temporal artery biopsy in giant cell arteritis: systematic review and meta-analysis. 
-                                        <em>Semin Arthritis Rheum.</em> 58:152131.
-                                        <a 
-                                            href="https://doi.org/10.1016/j.semarthrit.2022.152131" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-red-600 hover:text-red-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1016/j.semarthrit.2022.152131
-                                        </a>
+                                        <strong>Ciccia F, Rizzo A, Guggino G, et al.</strong> (2023). Histological and immunohistochemical characterization of temporal artery biopsy in giant cell arteritis: systematic review and meta-analysis. <em>Semin Arthritis Rheum.</em> 58:152131.
+                                        <a href="https://doi.org/10.1016/j.semarthrit.2022.152131" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline text-xs ml-2">DOI: 10.1016/j.semarthrit.2022.152131</a>
                                     </li>
                                     <li className="pl-4 border-l-2 border-red-300">
-                                        <strong>Stone JH, Tuckwell K, Dimonaco S, et al.</strong> (2022). 
-                                        Variability in histopathologic features in giant cell arteritis and implications for clinical trials. 
-                                        <em>Arthritis Rheumatol.</em> 74(8):1437-1444.
-                                        <a 
-                                            href="https://doi.org/10.1002/art.42107" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-red-600 hover:text-red-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1002/art.42107
-                                        </a>
+                                        <strong>Stone JH, Tuckwell K, Dimonaco S, et al.</strong> (2022). Variability in histopathologic features in giant cell arteritis and implications for clinical trials. <em>Arthritis Rheumatol.</em> 74(8):1437-1444.
+                                        <a href="https://doi.org/10.1002/art.42107" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline text-xs ml-2">DOI: 10.1002/art.42107</a>
                                     </li>
                                 </ul>
                             </div>
-
                             <div>
-                                <h3 className="font-bold text-indigo-900 mb-2">Immunoistochimica e marker diagnostici</h3>
+                                <h3 className="font-bold text-indigo-900 mb-2">Immunoistochimica e caratterizzazione immunologica</h3>
                                 <ul className="space-y-2 text-gray-700">
                                     <li className="pl-4 border-l-2 border-purple-300">
-                                        <strong>Muratore F, Kermani TA, Crowson CS, et al.</strong> (2022). 
-                                        Large-vessel giant cell arteritis: a cohort study. 
-                                        <em>Rheumatology (Oxford).</em> 54(3):463-470. 
-                                        <span className="text-purple-600 text-xs ml-2">Studio su CD68 sensibilità 94% in GCA confermata</span>
+                                        <strong>Weyand CM, Goronzy JJ.</strong> (2023). Immunology of giant cell arteritis. <em>Circ Res.</em> 132(2):238-250.
+                                        <a href="https://doi.org/10.1161/CIRCRESAHA.122.321663" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline text-xs ml-2">DOI: 10.1161/CIRCRESAHA.122.321663</a>
+                                        <span className="text-purple-600 text-xs ml-2">— Distribuzione compartimentale CD4/CD8 in GCA</span>
                                     </li>
                                     <li className="pl-4 border-l-2 border-purple-300">
-                                        <strong>Maleszewski JJ, Younge BR, Fritzlen JT, et al.</strong> (2017). 
-                                        Clinical and pathological evolution of giant cell arteritis: a prospective study of follow-up temporal artery biopsies in 40 treated patients. 
-                                        <em>Mod Pathol.</em> 30(6):788-796.
-                                        <a 
-                                            href="https://doi.org/10.1038/modpathol.2017.10" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-purple-600 hover:text-purple-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1038/modpathol.2017.10
-                                        </a>
+                                        <strong>Maleszewski JJ, Younge BR, Fritzlen JT, et al.</strong> (2017). Clinical and pathological evolution of giant cell arteritis: a prospective study of follow-up temporal artery biopsies in 40 treated patients. <em>Mod Pathol.</em> 30(6):788-796.
+                                        <a href="https://doi.org/10.1038/modpathol.2017.10" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline text-xs ml-2">DOI: 10.1038/modpathol.2017.10</a>
                                     </li>
                                     <li className="pl-4 border-l-2 border-purple-300">
-                                        <strong>Ramos-Casals M, Stone JH, Cid MC, Bosch X.</strong> (2012). 
-                                        The cryoglobulinaemias. 
-                                        <em>Lancet.</em> 379(9813):348-360. 
-                                        <span className="text-purple-600 text-xs ml-2">CD4/CD8 ratio e caratterizzazione immunologica</span>
+                                        <strong>van Sleen Y, Wang Q, van der Geest KSM, et al.</strong> (2023). Involvement of monocyte subsets in the immunopathology of giant cell arteritis. <em>Sci Rep.</em> 13:10388.
+                                        <a href="https://doi.org/10.1038/s41598-023-37376-3" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline text-xs ml-2">DOI: 10.1038/s41598-023-37376-3</a>
                                     </li>
                                 </ul>
                             </div>
-
                             <div>
-                                <h3 className="font-bold text-indigo-900 mb-2">Biopsia temporale: tecnica e sensibilità</h3>
+                                <h3 className="font-bold text-indigo-900 mb-2">Biopsia temporale: tecnica e sensibilita\'</h3>
                                 <ul className="space-y-2 text-gray-700">
                                     <li className="pl-4 border-l-2 border-orange-300">
-                                        <strong>Ing EB, Sivarajan V, Rotondo RL, et al.</strong> (2023). 
-                                        Systematic review and meta-analysis: temporal artery biopsy yield in patients already on glucocorticoid therapy for suspected giant cell arteritis. 
-                                        <em>J Neuroophthalmol.</em> 43(4):462-471.
-                                        <a 
-                                            href="https://doi.org/10.1097/WNO.0000000000001943" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-orange-600 hover:text-orange-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1097/WNO.0000000000001943
-                                        </a>
+                                        <strong>Ing EB, Sivarajan V, Rotondo RL, et al.</strong> (2023). Systematic review and meta-analysis: temporal artery biopsy yield in patients already on glucocorticoid therapy for suspected giant cell arteritis. <em>J Neuroophthalmol.</em> 43(4):462-471.
+                                        <a href="https://doi.org/10.1097/WNO.0000000000001943" target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline text-xs ml-2">DOI: 10.1097/WNO.0000000000001943</a>
                                     </li>
                                     <li className="pl-4 border-l-2 border-orange-300">
-                                        <strong>Mahr A, Saba M, Kambouchner M, et al.</strong> (2021). 
-                                        Temporal artery biopsy for diagnosing giant cell arteritis: the longer, the better? 
-                                        <em>Ann Rheum Dis.</em> 65(6):826-828.
+                                        <strong>Mahr A, Saba M, Kambouchner M, et al.</strong> (2021). Temporal artery biopsy for diagnosing giant cell arteritis: the longer, the better? <em>Ann Rheum Dis.</em> 65(6):826-828.
                                     </li>
                                 </ul>
                             </div>
-
                             <div>
                                 <h3 className="font-bold text-indigo-900 mb-2">Imaging e correlazione con istologia</h3>
                                 <ul className="space-y-2 text-gray-700">
                                     <li className="pl-4 border-l-2 border-green-300">
-                                        <strong>Sebastian A, Tomelleri A, Kayani A, et al.</strong> (2024). 
-                                        Probability of a positive temporal artery biopsy in patients with suspected GCA: a clinical prediction score using ultrasound. 
-                                        <em>Ann Rheum Dis.</em> 83(2):240-247.
-                                        <a 
-                                            href="https://doi.org/10.1136/ard-2023-224909" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-green-600 hover:text-green-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1136/ard-2023-224909
-                                        </a>
+                                        <strong>Sebastian A, Tomelleri A, Kayani A, et al.</strong> (2024). Probability of a positive temporal artery biopsy in patients with suspected GCA: a clinical prediction score using ultrasound. <em>Ann Rheum Dis.</em> 83(2):240-247.
+                                        <a href="https://doi.org/10.1136/ard-2023-224909" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline text-xs ml-2">DOI: 10.1136/ard-2023-224909</a>
                                     </li>
                                     <li className="pl-4 border-l-2 border-green-300">
-                                        <strong>Monti S, Floris A, Ponte CB, et al.</strong> (2023). 
-                                        The proposed role of ultrasound in the management of giant cell arteritis in routine clinical practice. 
-                                        <em>Rheumatology (Oxford).</em> 62(5):1688-1699.
-                                        <a 
-                                            href="https://doi.org/10.1093/rheumatology/keac520" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-green-600 hover:text-green-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1093/rheumatology/keac520
-                                        </a>
+                                        <strong>Monti S, Floris A, Ponte CB, et al.</strong> (2023). The proposed role of ultrasound in the management of giant cell arteritis in routine clinical practice. <em>Rheumatology (Oxford).</em> 62(5):1688-1699.
+                                        <a href="https://doi.org/10.1093/rheumatology/keac520" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline text-xs ml-2">DOI: 10.1093/rheumatology/keac520</a>
                                     </li>
                                     <li className="pl-4 border-l-2 border-green-300">
-                                        <strong>Nielsen BD, Gormsen LC, Hansen IT, et al.</strong> (2023). 
-                                        Three days of high-dose glucocorticoid treatment attenuates large-vessel 18F-FDG uptake in large-vessel giant cell arteritis but with a limited impact on diagnostic accuracy. 
-                                        <em>Eur J Nucl Med Mol Imaging.</em> 50(5):1245-1256.
-                                        <a 
-                                            href="https://doi.org/10.1007/s00259-022-06066-x" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-green-600 hover:text-green-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1007/s00259-022-06066-x
-                                        </a>
+                                        <strong>Nielsen BD, Gormsen LC, Hansen IT, et al.</strong> (2023). Three days of high-dose glucocorticoid treatment attenuates large-vessel 18F-FDG uptake in large-vessel giant cell arteritis but with a limited impact on diagnostic accuracy. <em>Eur J Nucl Med Mol Imaging.</em> 50(5):1245-1256.
+                                        <a href="https://doi.org/10.1007/s00259-022-06066-x" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline text-xs ml-2">DOI: 10.1007/s00259-022-06066-x</a>
                                     </li>
                                 </ul>
                             </div>
-
-                            <div>
-                                <h3 className="font-bold text-indigo-900 mb-2">Biomarcatori e medicina personalizzata</h3>
-                                <ul className="space-y-2 text-gray-700">
-                                    <li className="pl-4 border-l-2 border-purple-300">
-                                        <strong>van Sleen Y, Wang Q, van der Geest KSM, et al.</strong> (2023). 
-                                        Involvement of monocyte subsets in the immunopathology of giant cell arteritis. 
-                                        <em>Sci Rep.</em> 13:10388.
-                                        <a 
-                                            href="https://doi.org/10.1038/s41598-023-37376-3" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-purple-600 hover:text-purple-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1038/s41598-023-37376-3
-                                        </a>
-                                    </li>
-                                    <li className="pl-4 border-l-2 border-purple-300">
-                                        <strong>Cavalli G, Tomelleri A, Campochiaro C, et al.</strong> (2023). 
-                                        Serum calprotectin and risk of flare in patients with giant cell arteritis. 
-                                        <em>Rheumatology (Oxford).</em> 62(11):3617-3623.
-                                        <a 
-                                            href="https://doi.org/10.1093/rheumatology/kead141" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-purple-600 hover:text-purple-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1093/rheumatology/kead141
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-
                             <div>
                                 <h3 className="font-bold text-indigo-900 mb-2">Trattamento e stratificazione prognostica</h3>
                                 <ul className="space-y-2 text-gray-700">
                                     <li className="pl-4 border-l-2 border-blue-300">
-                                        <strong>Koster MJ, Matteson EL, Warrington KJ.</strong> (2024). 
-                                        Recent advances in the clinical management of giant cell arteritis and Takayasu arteritis. 
-                                        <em>Nat Rev Rheumatol.</em> 20(2):101-115.
-                                        <a 
-                                            href="https://doi.org/10.1038/s41584-023-01058-z" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:text-blue-800 hover:underline text-xs ml-2"
-                                        >
-                                            DOI: 10.1038/s41584-023-01058-z
-                                        </a>
+                                        <strong>Koster MJ, Matteson EL, Warrington KJ.</strong> (2024). Recent advances in the clinical management of giant cell arteritis and Takayasu arteritis. <em>Nat Rev Rheumatol.</em> 20(2):101-115.
+                                        <a href="https://doi.org/10.1038/s41584-023-01058-z" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs ml-2">DOI: 10.1038/s41584-023-01058-z</a>
                                     </li>
                                     <li className="pl-4 border-l-2 border-blue-300">
-                                        <strong>Villiger PM, Adler S, Kuchen S, et al.</strong> (2016). 
-                                        Tocilizumab for induction and maintenance of remission in giant cell arteritis: a phase 2, randomised, double-blind, placebo-controlled trial. 
-                                        <em>Lancet.</em> 387(10031):1921-1927.
+                                        <strong>Cavalli G, Tomelleri A, Campochiaro C, et al.</strong> (2023). Serum calprotectin and risk of flare in patients with giant cell arteritis. <em>Rheumatology (Oxford).</em> 62(11):3617-3623.
+                                        <a href="https://doi.org/10.1093/rheumatology/kead141" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs ml-2">DOI: 10.1093/rheumatology/kead141</a>
                                     </li>
                                 </ul>
                             </div>
-
                             <div className="mt-6 pt-4 border-t-2 border-gray-200">
                                 <p className="text-xs text-gray-600 italic">
-                                    <strong>Nota metodologica:</strong> Lo scoring proposto integra criteri ACR/EULAR 2023, 
-                                    dati di sensibilità/specificità da meta-analisi recenti (Ciccia et al. 2023, Ing et al. 2023) 
-                                    e stratificazione prognostica basata su pattern istologici (Stone et al. 2022, Watanabe et al. 2024). 
-                                    I pesi assegnati riflettono la performance diagnostica riportata in letteratura per ciascun parametro.
+                                    <strong>Nota metodologica:</strong> Lo scoring proposto integra parametri da criteri ACR/EULAR 2023, dati di performance diagnostica da meta-analisi recenti (Ciccia et al. 2023, Ing et al. 2023) e caratterizzazione immunologica compartimentale (Weyand &amp; Goronzy 2023). I pesi assegnati sono euristici e non validati prospetticamente. <strong>Questo non e\' un calcolatore ACR/EULAR 2023 in senso stretto</strong>, ma un sistema di supporto originale ispirato a quei criteri. La citazione Ramos-Casals 2012 (crioglobulinemie) e\' stata rimossa e sostituita con il riferimento corretto per la caratterizzazione CD4/CD8 in GCA.
                                 </p>
                             </div>
                         </div>
                     </div>
 
+                    {/* FOOTER */}
                     <div className="mt-6 bg-white rounded-lg shadow-md p-4 text-center">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                             <div className="text-xs text-gray-600">
-                                <p>Algoritmo basato su criteri ACR/EULAR 2023, linee guida EULAR 2023 e letteratura corrente</p>
-                                <p className="mt-1">⚠️ Strumento di supporto decisionale - non sostituisce il giudizio clinico-patologico</p>
-                                <p className="mt-2 text-indigo-600">Ultimo aggiornamento bibliografia: Ottobre 2024</p>
+                                <p>Algoritmo euristico ispirato a criteri ACR/EULAR 2023 — pesi non validati prospetticamente</p>
+                                <p className="mt-1">Strumento di supporto alla refertazione — non sostituisce il giudizio clinico-patologico</p>
+                                <p className="mt-2 text-indigo-600">Aggiornamento v2.3 — Gennaio 2025</p>
                             </div>
-                            <button
-                                onClick={resetAll}
-                                className="flex items-center space-x-2 px-5 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg transition-colors duration-200 border border-indigo-300 font-medium"
-                            >
+                            <button onClick={resetAll}
+                                className="flex items-center space-x-2 px-5 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg transition-colors duration-200 border border-indigo-300 font-medium">
                                 <RotateCcw size={18} />
                                 <span>Nuovo Caso</span>
                             </button>
