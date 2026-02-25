@@ -89,11 +89,6 @@
                 const length = parseFloat(sampleAdequacy.length);
                 const sections = parseInt(sampleAdequacy.sections);
 
-                // Tre livelli adeguatezza (v2.3):
-                // ADEGUATO: lunghezza >=10mm, sezioni >=10, struttura presente, elastica eseguita
-                // SUBOTTIMALE: lunghezza 5-9mm O sezioni 5-9, struttura presente + elastica
-                // NON VALUTABILE: struttura assente, elastica mancante, frammento <5mm, O campi numerici non compilati
-                // Fix v2.3: NaN (campo vuoto) → inadequate esplicito, non suboptimal per fallthrough
                 let adequacyLevel = 'adequate';
 
                 const lengthMissing = isNaN(length);
@@ -109,14 +104,14 @@
 
                 const adequacy = adequacyLevel !== 'inadequate';
 
-                // Pesi gerarchizzati per specificità morfologica reale (v2.1)
-                // CG e granulomatosa: specificità >90% per GCA → 25pt
-                // Frammentazione elastica diffusa: specifica solo se associata a infiammazione → 20pt
-                // Transmurale isolata: presente anche in PAN tardiva, ANCA vasculite, IgG4 → 15pt
-                if (majorFindings.giantCells) histoScore += 25;
-                if (majorFindings.granulomatous) histoScore += 25;
-                if (majorFindings.elasticFragmentation) histoScore += 20;
-                if (majorFindings.transmuralInflammation) histoScore += 15;
+                // Pesi rivisti v2.4: max score istologico = 100
+                // Maggiori: 22+22+18+13 = 75
+                // Minori: 5×5 = 25
+                // Totale max: 100
+                if (majorFindings.giantCells) histoScore += 22;
+                if (majorFindings.granulomatous) histoScore += 22;
+                if (majorFindings.elasticFragmentation) histoScore += 18;
+                if (majorFindings.transmuralInflammation) histoScore += 13;
 
                 let minorCount = 0;
                 if (minorFindings.lymphocyticInfiltrate) { histoScore += 5; minorCount++; }
@@ -141,7 +136,6 @@
                 let steroidPenalty = 0;
                 if (clinicalData.onSteroids) {
                     const days = parseInt(clinicalData.steroidDays) || 0;
-                    // Penalità rivista su dati Ing et al. 2023: riduzione progressiva, non crollo a 7gg
                     if (days > 14) steroidPenalty = 30;
                     else if (days >= 7) steroidPenalty = 20;
                     else if (days >= 3) steroidPenalty = 10;
@@ -177,8 +171,6 @@
                     ? ' | Campione subottimale (<10mm o <10 sezioni): rischio skip lesion aumentato — considerare nuovo prelievo se referto negativo con sospetto clinico elevato.'
                     : '';
 
-                // CLAUSOLA DIAGNOSTICO: serve score >=70 + >=2 maggiori + almeno CG o granulomatosa
-                // Senza CG/granulomatosa: frammentazione+transmurale in anziano = rischio FP → max "ALTAMENTE SUGGESTIVO"
                 if (compositeScore >= 70 && majorCount >= 2 && hasCoreCriteria) {
                     return {
                         category: 'DIAGNOSTICO',
@@ -349,7 +341,6 @@
                                 <span className="font-medium">Reset</span>
                             </button>
                         </div>
-                        {/* DISCLAIMER PROMINENTE — CORREZIONE CHIAVE */}
                         <div className="mt-4 p-3 bg-amber-50 border border-amber-300 rounded-md">
                             <p className="text-xs text-amber-800">
                                 <strong>Avvertenza metodologica:</strong> Lo scoring composito di questo strumento e\' basato su pesi euristici derivati dalla letteratura e <strong>NON e\' stato validato prospetticamente</strong> su casistica indipendente. I livelli di concordanza indicati sono categorie qualitative di supporto, non probabilita\' calibrate. Questo strumento <strong>non implementa i criteri ACR/EULAR 2023 in senso stretto</strong>, ma ne integra i parametri in un sistema euristico originale. <strong>La diagnosi rimane esclusiva responsabilita\' del patologo e del clinico refertante.</strong>
@@ -406,7 +397,7 @@
                                         <input type="checkbox" checked={majorFindings.giantCells}
                                             onChange={(e) => setMajorFindings({...majorFindings, giantCells: e.target.checked})}
                                             className="w-4 h-4 text-red-600 rounded focus:ring-red-500" />
-                                        <span className="text-sm text-gray-700">Cellule giganti multinucleate (giunzione intima-media) <span className="text-xs font-semibold text-red-600 ml-1">25 pt</span></span>
+                                        <span className="text-sm text-gray-700">Cellule giganti multinucleate (giunzione intima-media) <span className="text-xs font-semibold text-red-600 ml-1">22 pt</span></span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer">
                                         <input type="checkbox" checked={majorFindings.granulomatous}
@@ -414,7 +405,7 @@
                                             className="w-4 h-4 text-red-600 rounded focus:ring-red-500" />
                                         <span className="text-sm text-gray-700">
                                             Aggregati macrofagici organizzati centrati sulla IEL con distruzione elastica
-                                            <span className="text-xs font-semibold text-red-600 ml-1">25 pt</span>
+                                            <span className="text-xs font-semibold text-red-600 ml-1">22 pt</span>
                                             <span className="text-xs text-gray-400 ml-1">— non semplice infiltrato macrofagico diffuso</span>
                                         </span>
                                     </label>
@@ -424,7 +415,7 @@
                                             className="w-4 h-4 text-red-600 rounded focus:ring-red-500" />
                                         <span className="text-sm text-gray-700">
                                             Frammentazione elastica diffusa (&gt;30%) con infiammazione attiva associata
-                                            <span className="text-xs font-semibold text-orange-600 ml-1">20 pt</span>
+                                            <span className="text-xs font-semibold text-orange-600 ml-1">18 pt</span>
                                             <span className="text-xs text-gray-400 ml-1">— non valutare in assenza di infiltrato infiammatorio</span>
                                         </span>
                                     </label>
@@ -434,7 +425,7 @@
                                             className="w-4 h-4 text-red-600 rounded focus:ring-red-500" />
                                         <span className="text-sm text-gray-700">
                                             Infiammazione transmurale (tutti e tre gli strati)
-                                            <span className="text-xs font-semibold text-yellow-600 ml-1">15 pt</span>
+                                            <span className="text-xs font-semibold text-yellow-600 ml-1">13 pt</span>
                                             <span className="text-xs text-gray-400 ml-1">— presente anche in PAN tardiva, vasculiti ANCA, IgG4</span>
                                         </span>
                                     </label>
@@ -636,7 +627,7 @@
                                 </div>
                             </div>
 
-                            {/* BOX RISULTATO — "probabilita'" eliminate, sostituite con "concordanza" */}
+                            {/* BOX RISULTATO */}
                             <div className={`rounded-lg shadow-lg p-6 border-2 ${diagnosis.color}`}>
                                 <div className="flex items-start space-x-4">
                                     <div className="flex-shrink-0 mt-1">{diagnosis.icon}</div>
@@ -735,8 +726,8 @@
                                     <div className="bg-white rounded-md p-3 border-l-4 border-blue-500">
                                         <p className="font-bold text-blue-800 mb-1">Performance diagnostica IHC (letteratura)</p>
                                         <ul className="text-gray-700 ml-4 space-y-1">
-                                            <li><strong>CD68:</strong> positivo nel 94% delle GCA morfologicamente confermate (Ciccia et al. 2023). Sensibilita\' come test isolato in fase iniziale: 69%. <em>Attenzione: CD68 e\' sensibile ma non specifico — macrofagi abbondanti anche in altre vasculiti. Il valore diagnostico di CD68 e\' massimo nel contesto morfologico, non come marker isolato.</em></li>
-                                            <li>Rapporto CD4/CD8 in GCA: predominanza CD4 nella media, CD8 in avventizia (Weyand &amp; Goronzy, Circ Res 2023) — valutare come distribuzione compartimentale, non come soglia numerica rigida</li>
+                                            <li><strong>CD68:</strong> positivo nel 94% delle GCA morfologicamente confermate (Ciccia et al. 2023). Sensibilita\' come test isolato in fase iniziale: 69%. <em>Attenzione: CD68 e\' sensibile ma non specifico — macrofagi abbondanti anche in altre vasculiti.</em></li>
+                                            <li>Rapporto CD4/CD8 in GCA: predominanza CD4 nella media, CD8 in avventizia (Weyand &amp; Goronzy, Circ Res 2023)</li>
                                             <li>CD20: scarso/assente in GCA — se abbondante, riconsiderare diagnosi</li>
                                         </ul>
                                     </div>
@@ -745,15 +736,14 @@
 
                             {/* NOTE METODOLOGICHE */}
                             <div className="bg-indigo-50 rounded-lg p-5 text-sm">
-                                <h3 className="font-bold text-indigo-900 mb-2">Note metodologiche (v2.2)</h3>
+                                <h3 className="font-bold text-indigo-900 mb-2">Note metodologiche (v2.4)</h3>
                                 <ul className="space-y-1 text-indigo-800">
-                                    <li>Pesi gerarchizzati: CG/granulomatosa 25pt, elastica diffusa 20pt, transmurale 15pt</li>
+                                    <li>Pesi rivisti v2.4: CG/granulomatosa 22pt, elastica diffusa 18pt, transmurale 13pt — max score istologico = 100</li>
                                     <li>Categoria DIAGNOSTICO: richiede almeno CG o granulomatosa organizzata</li>
                                     <li>Frammentazione elastica: valutare solo se associata a infiltrato infiammatorio attivo</li>
-                                    <li>Reperto minore linfocitario: valutazione H&E (medio-intimale); caratterizzazione CD4/CD8 → blocco IHC</li>
                                     <li>Adeguatezza: tre livelli — ADEGUATO / SUBOTTIMALE (5-9mm o 5-9 sezioni) / NON VALUTABILE</li>
                                     <li>Penalita\' steroidi: -5pt (&lt;3gg), -10pt (3-7gg), -20pt (7-14gg), -30pt (&gt;14gg)</li>
-                                    <li><strong>Limite noto del modello lineare 60/40:</strong> caso con clinica esplosiva (score &gt;80) e istologia borderline (score 30) ottiene composite ~52 → "Compatibile". Clinicamente potrebbe essere trattato come GCA certa. Il modello non gestisce questa asimmetria biologica — in tali casi il giudizio clinico prevale sull\'algoritmo.</li>
+                                    <li><strong>Limite noto:</strong> caso con clinica esplosiva e istologia borderline puo\' essere sottostimato — il giudizio clinico prevale sull\'algoritmo.</li>
                                     <li>I livelli di concordanza NON sono probabilita\' calibrate</li>
                                     <li>Questo strumento NON implementa i criteri ACR/EULAR 2023 in senso stretto</li>
                                 </ul>
@@ -807,7 +797,6 @@
                                     <li className="pl-4 border-l-2 border-purple-300">
                                         <strong>Weyand CM, Goronzy JJ.</strong> (2023). Immunology of giant cell arteritis. <em>Circ Res.</em> 132(2):238-250.
                                         <a href="https://doi.org/10.1161/CIRCRESAHA.122.321663" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline text-xs ml-2">DOI: 10.1161/CIRCRESAHA.122.321663</a>
-                                        <span className="text-purple-600 text-xs ml-2">— Distribuzione compartimentale CD4/CD8 in GCA</span>
                                     </li>
                                     <li className="pl-4 border-l-2 border-purple-300">
                                         <strong>Maleszewski JJ, Younge BR, Fritzlen JT, et al.</strong> (2017). Clinical and pathological evolution of giant cell arteritis: a prospective study of follow-up temporal artery biopsies in 40 treated patients. <em>Mod Pathol.</em> 30(6):788-796.
@@ -843,7 +832,7 @@
                                         <a href="https://doi.org/10.1093/rheumatology/keac520" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline text-xs ml-2">DOI: 10.1093/rheumatology/keac520</a>
                                     </li>
                                     <li className="pl-4 border-l-2 border-green-300">
-                                        <strong>Nielsen BD, Gormsen LC, Hansen IT, et al.</strong> (2023). Three days of high-dose glucocorticoid treatment attenuates large-vessel 18F-FDG uptake in large-vessel giant cell arteritis but with a limited impact on diagnostic accuracy. <em>Eur J Nucl Med Mol Imaging.</em> 50(5):1245-1256.
+                                        <strong>Nielsen BD, Gormsen LC, Hansen IT, et al.</strong> (2023). Three days of high-dose glucocorticoid treatment attenuates large-vessel 18F-FDG uptake in large-vessel giant cell arteritis. <em>Eur J Nucl Med Mol Imaging.</em> 50(5):1245-1256.
                                         <a href="https://doi.org/10.1007/s00259-022-06066-x" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline text-xs ml-2">DOI: 10.1007/s00259-022-06066-x</a>
                                     </li>
                                 </ul>
@@ -863,7 +852,7 @@
                             </div>
                             <div className="mt-6 pt-4 border-t-2 border-gray-200">
                                 <p className="text-xs text-gray-600 italic">
-                                    <strong>Nota metodologica:</strong> Lo scoring proposto integra parametri da criteri ACR/EULAR 2023, dati di performance diagnostica da meta-analisi recenti (Ciccia et al. 2023, Ing et al. 2023) e caratterizzazione immunologica compartimentale (Weyand &amp; Goronzy 2023). I pesi assegnati sono euristici e non validati prospetticamente. <strong>Questo non e\' un calcolatore ACR/EULAR 2023 in senso stretto</strong>, ma un sistema di supporto originale ispirato a quei criteri. La citazione Ramos-Casals 2012 (crioglobulinemie) e\' stata rimossa e sostituita con il riferimento corretto per la caratterizzazione CD4/CD8 in GCA.
+                                    <strong>Nota metodologica:</strong> Lo scoring proposto integra parametri da criteri ACR/EULAR 2023, dati di performance diagnostica da meta-analisi recenti (Ciccia et al. 2023, Ing et al. 2023) e caratterizzazione immunologica compartimentale (Weyand &amp; Goronzy 2023). I pesi assegnati sono euristici e non validati prospetticamente. <strong>Questo non e\' un calcolatore ACR/EULAR 2023 in senso stretto.</strong>
                                 </p>
                             </div>
                         </div>
@@ -875,7 +864,7 @@
                             <div className="text-xs text-gray-600">
                                 <p>Algoritmo euristico ispirato a criteri ACR/EULAR 2023 — pesi non validati prospetticamente</p>
                                 <p className="mt-1">Strumento di supporto alla refertazione — non sostituisce il giudizio clinico-patologico</p>
-                                <p className="mt-2 text-indigo-600">Aggiornamento v2.3 — Gennaio 2025</p>
+                                <p className="mt-2 text-indigo-600">Aggiornamento v2.4 — Febbraio 2025</p>
                             </div>
                             <button onClick={resetAll}
                                 className="flex items-center space-x-2 px-5 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg transition-colors duration-200 border border-indigo-300 font-medium">
