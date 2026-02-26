@@ -72,7 +72,7 @@
             });
             const [minorFindings, setMinorFindings] = useState({
                 lymphocyticInfiltrate: false, intimalThickening: false, adventitialInflammation: false,
-                neovascularization: false, focalElasticFragmentation: false
+                neovascularization: false, focalElasticFragmentation: false, eosinophils: false
             });
             const [clinicalData, setClinicalData] = useState({
                 age: '', newHeadache: false, jawClaudication: false, visualSymptoms: false,
@@ -80,6 +80,9 @@
             });
             const [ihcMarkers, setIhcMarkers] = useState({
                 cd68: false, cd4: false, cd8: false, cd3: false, cd20: false
+            });
+            const [redFlags, setRedFlags] = useState({
+                atypicalLymphoid: false, necrotizingGranulomas: false
             });
 
             const calculateScore = () => {
@@ -95,16 +98,15 @@
                 const sectionsMissing = isNaN(sections);
 
                 if (!sampleAdequacy.arterialStructure || !sampleAdequacy.elasticStain ||
-                    lengthMissing || sectionsMissing ||
-                    length < 5 || sections < 5) {
+                    lengthMissing || sectionsMissing) {
                     adequacyLevel = 'inadequate';
-                } else if (length < 10 || sections < 10) {
+                } else if (length < 5 || sections < 6) {
                     adequacyLevel = 'suboptimal';
                 }
 
                 const adequacy = adequacyLevel !== 'inadequate';
 
-                // Pesi rivisti v2.4: max score istologico = 100
+                // Pesi rivisti v2.4 — adeguatezza rivista v2.5: max score istologico = 100
                 // Maggiori: 22+22+18+13 = 75
                 // Minori: 5×5 = 25
                 // Totale max: 100
@@ -119,6 +121,7 @@
                 if (minorFindings.adventitialInflammation) { histoScore += 5; minorCount++; }
                 if (minorFindings.neovascularization) { histoScore += 5; minorCount++; }
                 if (minorFindings.focalElasticFragmentation) { histoScore += 5; minorCount++; }
+                if (minorFindings.eosinophils) histoScore = Math.max(0, histoScore - 5);
 
                 const age = parseInt(clinicalData.age);
                 if (age >= 50) clinicalScore += 15;
@@ -150,7 +153,9 @@
                     adequacy, adequacyLevel, steroidPenalty,
                     majorCount: Object.values(majorFindings).filter(Boolean).length,
                     minorCount,
-                    hasCoreCriteria: majorFindings.giantCells || majorFindings.granulomatous
+                    hasCoreCriteria: majorFindings.giantCells || majorFindings.granulomatous,
+                    hasRedFlags: redFlags.atypicalLymphoid || redFlags.necrotizingGranulomas,
+                    redFlagDetails: redFlags
                 };
             };
 
@@ -161,14 +166,14 @@
                         color: 'bg-gray-100 border-gray-400',
                         icon: <XCircle className="text-gray-600" />,
                         text: 'Campione inadeguato per diagnosi definitiva',
-                        recommendation: 'Struttura arteriosa non identificabile o colorazione elastica mancante o frammento <5mm. Si raccomanda nuovo prelievo con segmento >=10mm (ottimale 15-20mm), >=15 sezioni seriali, colorazione elastica.'
+                        recommendation: 'Struttura arteriosa non identificabile o colorazione elastica mancante o dati campione non inseriti. Si raccomanda nuovo prelievo con segmento ≥10mm (ottimale 15-20mm), ≥10 sezioni seriali, colorazione elastica.'
                     };
                 }
 
                 const { compositeScore, majorCount, minorCount, steroidPenalty, clinicalScore, hasCoreCriteria, adequacyLevel } = scores;
 
                 const suboptimalWarning = adequacyLevel === 'suboptimal'
-                    ? ' | Campione subottimale (<10mm o <10 sezioni): rischio skip lesion aumentato — considerare nuovo prelievo se referto negativo con sospetto clinico elevato.'
+                    ? ' | Campione subottimale: struttura presente ma dimensioni ridotte. Referto negativo con sospetto clinico elevato → considerare nuovo prelievo.'
                     : '';
 
                 if (compositeScore >= 70 && majorCount >= 2 && hasCoreCriteria) {
@@ -202,7 +207,7 @@
                         icon: <Info className="text-yellow-600" />,
                         text: 'Compatibile con GCA (possibile variante senza cellule giganti)',
                         concordance: 'Concordanza parziale con GCA',
-                        recommendation: 'Reperti non diagnostici ma morfologicamente compatibili nel contesto clinico. Possibile variante senza cellule giganti (20-30% dei casi). Raccomandati: eco-Doppler temporale/ascellare (sensibilita\' ~87% in centri esperti), eventuale PET-TC per valutazione large-vessel, biopsia controlaterale se imaging negativo.' + suboptimalWarning
+                        recommendation: 'Reperti non diagnostici ma morfologicamente compatibili nel contesto clinico. Possibile variante senza cellule giganti (20-30% dei casi). Raccomandati: eco-Doppler temporale/ascellare (sensibilita\' ~87% in centri esperti), eventuale PET-TC per valutazione dei grandi vasi, biopsia controlaterale se imaging negativo.' + suboptimalWarning
                     };
                 }
 
@@ -213,7 +218,7 @@
                         icon: <Info className="text-blue-600" />,
                         text: 'Bassa concordanza con GCA',
                         concordance: 'Scarsa concordanza con GCA',
-                        recommendation: 'Alterazioni aspecifiche o scarsamente rappresentative. DD principale: vasculite ANCA-associata, arterite di Takayasu (paziente giovane), vasculite IgG4-correlata, aterosclerosi accelerata. Considerare anche: arterite avventiziale isolata (early GCA o fenomeni reattivi periavventiziali — infiltrato confinato all\'avventizia senza coinvolgimento media). Valutare con imaging e sierologia mirata.' + suboptimalWarning
+                        recommendation: 'Alterazioni aspecifiche o scarsamente rappresentative. DD principale: vasculite ANCA-associata, arterite di Takayasu (paziente giovane), vasculite IgG4-correlata, aterosclerosi accelerata. Se presenti eosinofili intraparietali: escludere EGPA (granulomatosi eosinofilica con poliangite) e vasculite ANCA-eosinofilica — sierologia ANCA con differenziazione MPO/PR3, eosinofilia periferica, contesto clinico (asma, sinusite). Considerare anche: arterite avventiziale isolata (early GCA o fenomeni reattivi periavventiziali). Valutare con imaging e sierologia mirata.' + suboptimalWarning
                     };
                 }
 
@@ -225,7 +230,7 @@
                     concordance: 'Assenza di concordanza con GCA',
                     recommendation: (steroidPenalty > 0
                         ? 'Reperti non diagnostici. Attenzione: biopsia eseguita sotto steroidi — sensibilita\' si riduce significativamente gia\' dopo 7-14 gg di terapia. Se sospetto clinico elevato persiste: eco-Doppler temporale bilaterale, biopsia controlaterale, PET-TC, o proseguire terapia empirica con rivalutazione clinica.'
-                        : 'Biopsia negativa per GCA. Ricordare: skip lesions nel ~10-15% dei casi. Se sospetto clinico rimane elevato (claudicatio mascellare, disturbi visivi, VES molto elevata): eco-Doppler temporale bilaterale, biopsia controlaterale, imaging large-vessel. DD: arterite avventiziale isolata se presente solo infiammazione periavventiziale.') + suboptimalWarning
+                        : 'Biopsia negativa per GCA. Ricordare: skip lesions nel ~10-15% dei casi. Se sospetto clinico rimane elevato (claudicatio mascellare, disturbi visivi, VES molto elevata): eco-Doppler temporale bilaterale, biopsia controlaterale, imaging dei grandi vasi. DD: arterite avventiziale isolata se presente solo infiammazione periavventiziale. Se presenti eosinofili intraparietali: considerare EGPA — sierologia ANCA (MPO), eosinofilia periferica, contesto clinico.') + suboptimalWarning
                 };
             };
 
@@ -315,9 +320,10 @@
             const resetAll = () => {
                 setSampleAdequacy({ length: '', arterialStructure: false, sections: '', elasticStain: false });
                 setMajorFindings({ giantCells: false, granulomatous: false, elasticFragmentation: false, transmuralInflammation: false });
-                setMinorFindings({ lymphocyticInfiltrate: false, intimalThickening: false, adventitialInflammation: false, neovascularization: false, focalElasticFragmentation: false });
+                setMinorFindings({ lymphocyticInfiltrate: false, intimalThickening: false, adventitialInflammation: false, neovascularization: false, focalElasticFragmentation: false, eosinophils: false });
                 setClinicalData({ age: '', newHeadache: false, jawClaudication: false, visualSymptoms: false, esr: '', crp: false, haloSign: false, onSteroids: false, steroidDays: '' });
                 setIhcMarkers({ cd68: false, cd4: false, cd8: false, cd3: false, cd20: false });
+                setRedFlags({ atypicalLymphoid: false, necrotizingGranulomas: false });
             };
 
             return (
@@ -361,7 +367,7 @@
                                             onChange={(e) => setSampleAdequacy({...sampleAdequacy, length: e.target.value})}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                                             placeholder="es. 15" />
-                                        <p className="text-xs text-gray-500 mt-1">Minimo 10 mm, ottimale &ge;15 mm</p>
+                                        <p className="text-xs text-gray-500 mt-1">Minimo 5 mm, ottimale &ge;10 mm</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Numero sezioni analizzate</label>
@@ -369,7 +375,7 @@
                                             onChange={(e) => setSampleAdequacy({...sampleAdequacy, sections: e.target.value})}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                                             placeholder="es. 15" />
-                                        <p className="text-xs text-gray-500 mt-1">Minimo 10, raccomandato &ge;15 sezioni seriali</p>
+                                        <p className="text-xs text-gray-500 mt-1">Minimo 6, raccomandato &ge;10 sezioni seriali</p>
                                     </div>
                                     <label className="flex items-center space-x-2 cursor-pointer">
                                         <input type="checkbox" checked={sampleAdequacy.arterialStructure}
@@ -474,6 +480,47 @@
                                             onChange={(e) => setMinorFindings({...minorFindings, focalElasticFragmentation: e.target.checked})}
                                             className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500" />
                                         <span className="text-sm text-gray-700">Frammentazione elastica focale (&lt;30%) con infiammazione associata</span>
+                                    </label>
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" checked={minorFindings.eosinophils}
+                                            onChange={(e) => setMinorFindings({...minorFindings, eosinophils: e.target.checked})}
+                                            className="w-4 h-4 text-red-400 rounded focus:ring-red-400" />
+                                        <span className="text-sm text-gray-700">
+                                            Eosinofili intraparietali significativi
+                                            <span className="text-xs font-semibold text-red-500 ml-1">-5 pt</span>
+                                            <span className="text-xs text-gray-400 ml-1">— reperto atipico per GCA, orienta verso DD</span>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div className="mt-3 p-2 bg-red-50 rounded text-xs text-red-700">
+                                    Eosinofili intraparietali: reperto atipico per GCA. Considerare EGPA (granulomatosi eosinofilica con poliangite), vasculite ANCA-associata eosinofilica, o reazione avventiziale aspecifica (farmaci, parassitosi).
+                                </div>
+                            </div>
+
+                            {/* 3b. RED FLAGS */}
+                            <div className="bg-white rounded-lg shadow-md p-5 border-2 border-red-200">
+                                <h2 className="text-xl font-bold text-red-800 mb-2 border-b border-red-200 pb-2">
+                                    ⚠ Reperti Inattesi / Red Flag Morfologici
+                                </h2>
+                                <p className="text-xs text-red-600 mb-3">Reperti che suggeriscono diagnosi alternativa — scavalca lo scoring GCA e genera alert specifico</p>
+                                <div className="space-y-3">
+                                    <label className="flex items-start space-x-2 cursor-pointer">
+                                        <input type="checkbox" checked={redFlags.atypicalLymphoid}
+                                            onChange={(e) => setRedFlags({...redFlags, atypicalLymphoid: e.target.checked})}
+                                            className="w-4 h-4 mt-0.5 text-red-600 rounded focus:ring-red-500" />
+                                        <span className="text-sm text-gray-700">
+                                            <strong>Cellule linfoidi atipiche intravascolari</strong>
+                                            <span className="block text-xs text-gray-500 mt-0.5">Cellule con nucleo irregolare/ipercromico nei lumi vascolari o vasa vasorum dell'avventizia — anche poche unità sono significative</span>
+                                        </span>
+                                    </label>
+                                    <label className="flex items-start space-x-2 cursor-pointer">
+                                        <input type="checkbox" checked={redFlags.necrotizingGranulomas}
+                                            onChange={(e) => setRedFlags({...redFlags, necrotizingGranulomas: e.target.checked})}
+                                            className="w-4 h-4 mt-0.5 text-red-600 rounded focus:ring-red-500" />
+                                        <span className="text-sm text-gray-700">
+                                            <strong>Granulomi con necrosi centrale</strong>
+                                            <span className="block text-xs text-gray-500 mt-0.5">Necrosi fibrinoide/caseosa al centro dei granulomi — eccezionale in GCA, suggestiva di eziologia infettiva</span>
+                                        </span>
                                     </label>
                                 </div>
                             </div>
@@ -645,6 +692,33 @@
                                 </div>
                             </div>
 
+                            {/* RED FLAG ALERTS */}
+                            {scores.hasRedFlags && (
+                                <div className="rounded-lg shadow-lg p-5 border-2 border-red-600 bg-red-50">
+                                    <div className="flex items-center space-x-2 mb-3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-700 flex-shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                        <h3 className="text-lg font-bold text-red-800">ALERT — DIAGNOSI ALTERNATIVA</h3>
+                                    </div>
+                                    <p className="text-sm text-red-700 mb-3">Reperti inattesi rilevati. Lo scoring GCA è secondario — priorità alla caratterizzazione del reperto inatteso.</p>
+                                    {redFlags.atypicalLymphoid && (
+                                        <div className="bg-white rounded-md p-3 mb-2 border-l-4 border-red-500">
+                                            <p className="font-bold text-red-800 text-sm mb-1">⚠ Sospetto Linfoma Intravascolare</p>
+                                            <p className="text-xs text-gray-700 mb-2">Cellule linfoidi atipiche intravascolari — escludere linfoma intravascolare B o T (entità rara ma ad alta mortalità se non trattata).</p>
+                                            <p className="text-xs font-semibold text-gray-800">IHC urgente: <span className="text-red-700">CD20, CD3, MUM1, Ki67</span></p>
+                                            <p className="text-xs text-gray-600 mt-1">Se CD20+/MUM1+: linfoma intravascolare a grandi cellule B. Se CD3+: variante T (più rara). Comunicare al clinico prima del referto definitivo.</p>
+                                        </div>
+                                    )}
+                                    {redFlags.necrotizingGranulomas && (
+                                        <div className="bg-white rounded-md p-3 border-l-4 border-orange-500">
+                                            <p className="font-bold text-orange-800 text-sm mb-1">⚠ Sospetta Arterite Infettiva</p>
+                                            <p className="text-xs text-gray-700 mb-2">Granulomi con necrosi centrale — reperto eccezionale in GCA. Escludere eziologia infettiva, in particolare TBC e micosi invasive.</p>
+                                            <p className="text-xs font-semibold text-gray-800">Colorazioni speciali: <span className="text-orange-700">ZN (micobatteri), PAS + GMS (funghi)</span></p>
+                                            <p className="text-xs text-gray-600 mt-1">Contesto clinico rilevante: immunosoppressione, provenienza geografica ad alta endemia TBC, febbre, perdita di peso. Richiedere colture su tessuto fresco se disponibile.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* RIEPILOGO */}
                             <div className="bg-white rounded-lg shadow-md p-5">
                                 <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Riepilogo Reperti</h2>
@@ -672,7 +746,7 @@
                                 </div>
                                 {scores.adequacyLevel === 'suboptimal' && (
                                     <div className="mt-3 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs text-yellow-800">
-                                        Campione subottimale: rischio skip lesion aumentato. Referto negativo con sospetto clinico elevato → considerare nuovo prelievo.
+                                        Campione subottimale: dimensioni ridotte ma refertabile. Se negativo con sospetto clinico elevato → considerare nuovo prelievo o imaging.
                                     </div>
                                 )}
                             </div>
@@ -736,12 +810,12 @@
 
                             {/* NOTE METODOLOGICHE */}
                             <div className="bg-indigo-50 rounded-lg p-5 text-sm">
-                                <h3 className="font-bold text-indigo-900 mb-2">Note metodologiche (v2.4)</h3>
+                                <h3 className="font-bold text-indigo-900 mb-2">Note metodologiche (v2.8)</h3>
                                 <ul className="space-y-1 text-indigo-800">
-                                    <li>Pesi rivisti v2.4: CG/granulomatosa 22pt, elastica diffusa 18pt, transmurale 13pt — max score istologico = 100</li>
+                                    <li>Pesi rivisti v2.4 — adeguatezza rivista v2.5: CG/granulomatosa 22pt, elastica diffusa 18pt, transmurale 13pt — max score istologico = 100</li>
                                     <li>Categoria DIAGNOSTICO: richiede almeno CG o granulomatosa organizzata</li>
                                     <li>Frammentazione elastica: valutare solo se associata a infiltrato infiammatorio attivo</li>
-                                    <li>Adeguatezza: tre livelli — ADEGUATO / SUBOTTIMALE (5-9mm o 5-9 sezioni) / NON VALUTABILE</li>
+                                    <li>Adeguatezza v2.5: ADEGUATO ≥5mm + ≥6 sez + struttura + elastica / SUBOTTIMALE <5mm o <6 sez con struttura presente / NON VALUTABILE struttura assente o elastica mancante</li>
                                     <li>Penalita\' steroidi: -5pt (&lt;3gg), -10pt (3-7gg), -20pt (7-14gg), -30pt (&gt;14gg)</li>
                                     <li><strong>Limite noto:</strong> caso con clinica esplosiva e istologia borderline puo\' essere sottostimato — il giudizio clinico prevale sull\'algoritmo.</li>
                                     <li>I livelli di concordanza NON sono probabilita\' calibrate</li>
@@ -864,7 +938,7 @@
                             <div className="text-xs text-gray-600">
                                 <p>Algoritmo euristico ispirato a criteri ACR/EULAR 2023 — pesi non validati prospetticamente</p>
                                 <p className="mt-1">Strumento di supporto alla refertazione — non sostituisce il giudizio clinico-patologico</p>
-                                <p className="mt-2 text-indigo-600">Aggiornamento v2.4 — Febbraio 2025</p>
+                                <p className="mt-2 text-indigo-600">Aggiornamento v2.8 — Febbraio 2025</p>
                             </div>
                             <button onClick={resetAll}
                                 className="flex items-center space-x-2 px-5 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg transition-colors duration-200 border border-indigo-300 font-medium">
