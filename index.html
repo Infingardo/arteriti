@@ -34,10 +34,15 @@
         const [clinicalData, setClinicalData] = useState({ age:'', newHeadache:false, jawClaudication:false, visualSymptoms:false, esr:'', crp:false, haloSign:false, onSteroids:false, steroidDays:'' });
         const [ihcMarkers, setIhcMarkers] = useState({ cd68:false, cd4:false, cd8:false, cd3:false, cd20:false });
         const [redFlags, setRedFlags] = useState({ atypicalLymphoid:false, necrotizingGranulomas:false, necrotizingVasculitis:false });
+        const [refertoOverride, setRefertoOverride] = useState(null); // null = usa auto-generato; stringa = testo editato manualmente
+
+        // ── MODALITÀ DATI CLINICI ───────────────────────────────────────
+        // 'full'    → dati clinici completi      → pesi 60% isto / 40% clinico
+        // 'partial' → dati parziali/frammentari  → pesi 80% isto / 20% clinico
+        // 'none'    → solo istologia             → peso 100% isto, soglie ricalibrate
+        const [clinicalMode, setClinicalMode] = useState('full');
 
         /* ── GATING: condizioni di eligibilità reperti elastici ─────────── */
-        // Gating a due livelli: (1) VVG eseguita, (2) presenza di almeno un reperto infiammatorio attivo
-        // Senza entrambi, frammentazione elastica non entra nel calcolo e checkbox viene disabilitata
         const hasActiveInflammation =
             majorFindings.giantCells ||
             majorFindings.granulomatous ||
@@ -49,35 +54,34 @@
         /* ── GATING: reperti murali richiedono struttura arteriosa ─────── */
         const hasArterialStructure = sampleAdequacy.arterialStructure;
 
+        /* ── PESI IN BASE ALLA MODALITÀ ──────────────────────────────────── */
+        const getWeights = () => {
+            if (clinicalMode === 'none')    return { h: 1.00, c: 0.00 };
+            if (clinicalMode === 'partial') return { h: 0.80, c: 0.20 };
+            return                                 { h: 0.60, c: 0.40 };
+        };
+
         /* ── VALIDAZIONE COERENZA ────────────────────────────────────────── */
         const getValidationWarnings = () => {
             const warnings = [];
-
-            // Frammentazione elastica selezionata senza VVG [error bloccante]
             if (!sampleAdequacy.elasticStain && (majorFindings.elasticFragmentation || minorFindings.focalElasticFragmentation)) {
                 warnings.push({ level:'error', text:'Frammentazione elastica selezionata senza colorazione elastica (VVG) eseguita. I punti relativi sono ESCLUSI dal calcolo. Eseguire VVG prima di refertare.' });
             }
-            // Frammentazione elastica senza infiltrato infiammatorio attivo [error bloccante]
             if (sampleAdequacy.elasticStain && (majorFindings.elasticFragmentation || minorFindings.focalElasticFragmentation) && !hasActiveInflammation) {
                 warnings.push({ level:'error', text:'Frammentazione elastica selezionata in assenza di reperti infiammatori attivi associati. I punti relativi sono ESCLUSI dal calcolo: frammentazione isolata senza infiammazione è aspecifica (aterosclerosi, artefatti, invecchiamento).' });
             }
-            // Steroidi senza giorni [warning]
             if (clinicalData.onSteroids && (clinicalData.steroidDays==='' || isNaN(parseInt(clinicalData.steroidDays)))) {
                 warnings.push({ level:'warning', text:'Terapia steroidea indicata ma durata non specificata. Penalità applicata al minimo (−5 pt). Inserire i giorni per valutazione accurata.' });
             }
-            // Reperti murali senza struttura arteriosa [error bloccante]
             if (!hasArterialStructure && (majorFindings.transmuralInflammation || majorFindings.elasticFragmentation || minorFindings.intimalThickening)) {
                 warnings.push({ level:'error', text:'Reperti murali selezionati (infiammazione transmurale, frammentazione elastica, ispessimento intimale) su campione con struttura arteriosa assente. Incoerenza logica: i punti relativi sono ESCLUSI dal calcolo.' });
             }
-            // CG senza struttura arteriosa [error bloccante]
             if (!hasArterialStructure && majorFindings.giantCells) {
                 warnings.push({ level:'error', text:'Cellule giganti selezionate ma struttura arteriosa non identificabile: impossibile attribuire topograficamente le CG alla giunzione intima-media. Punti ESCLUSI dal calcolo.' });
             }
-            // Eosinofili → DD alert [info]
             if (minorFindings.eosinophils) {
                 warnings.push({ level:'info', text:'Eosinofili intraparietali significativi: reperto atipico per GCA. DD: EGPA, vasculite ANCA-eosinofilica, reazione avventiziale aspecifica. Valutare ANCA (MPO/PR3), eosinofilia periferica, contesto clinico.' });
             }
-
             return warnings;
         };
 
@@ -91,15 +95,12 @@
             const lengthMissing   = isNaN(length)   || sampleAdequacy.length   === '';
             const sectionsMissing = isNaN(sections) || sampleAdequacy.sections === '';
 
-            // Adeguatezza
             let adequacyLevel;
             if (!hasArterialStructure) adequacyLevel = 'inadequate';
             else if (lengthMissing || sectionsMissing) adequacyLevel = 'unknown';
             else if (length < 5 || sections < 6) adequacyLevel = 'suboptimal';
             else adequacyLevel = 'adequate';
 
-            // Se campione non refertabile: histoScore = null, compositeScore = null
-            // Lo score clinico rimane leggibile (può essere utile comunicarlo)
             if (adequacyLevel === 'inadequate') {
                 const age = parseInt(clinicalData.age);
                 if (age >= 50) clinicalScore += 15;
@@ -116,13 +117,10 @@
                 return { histoScore:null, clinicalScore, compositeScore:null, histoContrib:null, clinicContrib:null, steroidPenalty:0, driver:'n/a', adequacyLevel, majorCount:0, minorCount:0, hasCoreCriteria:false, hasRedFlags:redFlags.atypicalLymphoid||redFlags.necrotizingGranulomas||redFlags.necrotizingVasculitis };
             }
 
-            // Reperti validati canonici — definiti PRIMA del calcolo del punteggio.
-            // Tutta la matematica nasce da questi oggetti: score, count, hasCoreCriteria,
-            // riepilogo e logica categoriale derivano dalla stessa fonte di verità.
             const validMajorFindings = {
-                giantCells:            majorFindings.giantCells,                                          // struttura sempre ok (inadequate già uscito)
+                giantCells:            majorFindings.giantCells,
                 granulomatous:         majorFindings.granulomatous,
-                elasticFragmentation:  majorFindings.elasticFragmentation && canUseElastic,               // gated: VVG + infiammazione attiva
+                elasticFragmentation:  majorFindings.elasticFragmentation && canUseElastic,
                 transmuralInflammation:majorFindings.transmuralInflammation
             };
             const validMinorFindings = {
@@ -130,16 +128,14 @@
                 intimalThickening:         minorFindings.intimalThickening,
                 adventitialInflammation:   minorFindings.adventitialInflammation,
                 neovascularization:        minorFindings.neovascularization,
-                focalElasticFragmentation: minorFindings.focalElasticFragmentation && canUseElastic       // gated: VVG + infiammazione attiva
-                // eosinophils: nessun punto — solo DD alert in getValidationWarnings
+                focalElasticFragmentation: minorFindings.focalElasticFragmentation && canUseElastic
             };
             const majorCount      = Object.values(validMajorFindings).filter(Boolean).length;
             const validMinorCount = Object.values(validMinorFindings).filter(Boolean).length;
             const hasCoreCriteria = validMajorFindings.giantCells || validMajorFindings.granulomatous;
 
-            // histoScore derivato direttamente dai reperti validati
             if (validMajorFindings.giantCells)             histoScore += 22;
-            if (validMajorFindings.granulomatous)          histoScore += validMajorFindings.giantCells ? 11 : 22;  // damping 50% se coesiste CG
+            if (validMajorFindings.granulomatous)          histoScore += validMajorFindings.giantCells ? 11 : 22;
             if (validMajorFindings.elasticFragmentation)   histoScore += 15;
             if (validMajorFindings.transmuralInflammation) histoScore += 13;
             if (validMinorFindings.lymphocyticInfiltrate)     histoScore += 5;
@@ -148,7 +144,8 @@
             if (validMinorFindings.neovascularization)        histoScore += 5;
             if (validMinorFindings.focalElasticFragmentation) histoScore += 5;
 
-            // Score clinico
+            // Score clinico — calcolato sempre (anche in modalità 'none'/'partial')
+            // In 'none': contribuisce 0% al composito; in 'partial': contribuisce 20%
             const age = parseInt(clinicalData.age);
             if (age >= 50) clinicalScore += 15;
             if (age >= 70) clinicalScore += 10;
@@ -162,7 +159,6 @@
             if (clinicalData.haloSign) clinicalScore += 15;
             clinicalScore = Math.min(100, clinicalScore);
 
-            // Penalità steroidi
             let steroidPenalty = 0;
             if (clinicalData.onSteroids) {
                 const days = parseInt(clinicalData.steroidDays) || 0;
@@ -172,22 +168,21 @@
                 else               steroidPenalty = 5;
             }
 
+            const { h: hw, c: cw } = getWeights();
             const compositeScore = Math.min(100, Math.max(0,
-                Math.round((histoScore * 0.6) + (clinicalScore * 0.4) - steroidPenalty)
+                Math.round((histoScore * hw) + (clinicalScore * cw) - steroidPenalty)
             ));
 
-            const histoContrib  = Math.round(histoScore * 0.6);
-            const clinicContrib = Math.round(clinicalScore * 0.4);
-            const driver = histoContrib > clinicContrib ? 'morphology'
-                         : clinicContrib > histoContrib ? 'clinical'
-                         : 'balanced';
+            const histoContrib  = Math.round(histoScore * hw);
+            const clinicContrib = Math.round(clinicalScore * cw);
+            const driver = (clinicalMode === 'none')  ? 'morphology' :
+                           histoContrib > clinicContrib  ? 'morphology' :
+                           clinicContrib > histoContrib  ? 'clinical'   : 'balanced';
 
             return {
                 histoScore, clinicalScore, compositeScore,
                 histoContrib, clinicContrib, steroidPenalty, driver, adequacyLevel,
-                majorCount,
-                minorCount: validMinorCount,
-                hasCoreCriteria,
+                majorCount, minorCount: validMinorCount, hasCoreCriteria,
                 validMajorFindings, validMinorFindings,
                 hasRedFlags: redFlags.atypicalLymphoid || redFlags.necrotizingGranulomas || redFlags.necrotizingVasculitis
             };
@@ -200,7 +195,6 @@
 
             if (adequacyLevel === 'inadequate') return { blocked:'inadequate' };
 
-            // Hard inconsistency: la valutazione non è affidabile finché non corretta (#2 review)
             if (hardInconsistency) {
                 return {
                     blocked:'inconsistent',
@@ -220,6 +214,76 @@
                               : driver === 'clinical'   ? '— peso prevalente: clinica'
                               : '— morfologia e clinica bilanciate';
 
+            // ── MODALITÀ SOLO ISTOLOGIA: soglie ricalibrate ─────────────────
+            // Razionale: senza ancoraggio clinico le soglie sono più stringenti
+            // per gli score bassi ma non penalizzano la morfologia positiva forte.
+            // Soglie: DIAGNOSTICA ≥55 + ≥2 maggiori + core criteria
+            //         ALTAMENTE SUGGESTIVA ≥40 + ≥1 maggiore
+            //         COMPATIBILE ≥20 + (≥1 maggiore o ≥2 minori)
+            //         BASSA CONCORDANZA ≥10
+            //         NEGATIVA <10
+            if (clinicalMode === 'none') {
+                const modeNote = ' | Diagnosi basata esclusivamente su criteri morfologici — notizie cliniche non disponibili al momento della refertazione.';
+                if (compositeScore >= 55 && majorCount >= 2 && hasCoreCriteria) {
+                    return {
+                        category:'ISTOLOGIA DIAGNOSTICA PER GCA',
+                        color:'bg-red-100 border-red-500',
+                        icon:<AlertCircle className="text-red-600"/>,
+                        text:'Arterite a cellule giganti — diagnosi basata su soli criteri morfologici',
+                        driverLabel:'— morfologia (notizie cliniche non disponibili)',
+                        recommendation:'Core criteria presenti (CG e/o granulomatosa organizzata) con reperti morfologici complessivi fortemente concordanti. La diagnosi è istologicamente sostenibile in assenza di dati clinici. Comunicare al clinico per integrazione anamnestica e terapeutica.' + suboptimalWarning + modeNote
+                    };
+                }
+                if (compositeScore >= 40 && majorCount >= 1) {
+                    return {
+                        category:'ISTOLOGIA ALTAMENTE SUGGESTIVA PER GCA',
+                        color:'bg-orange-100 border-orange-500',
+                        icon:<AlertCircle className="text-orange-600"/>,
+                        text:'Reperti morfologici altamente suggestivi — notizie cliniche non disponibili',
+                        driverLabel:'— morfologia (notizie cliniche non disponibili)',
+                        recommendation: (steroidPenalty > 0
+                            ? 'Biopsia sotto steroidi: sensibilità ridotta già dopo 3–5 gg. Reperti istologici altamente suggestivi — interpretare con cautela in assenza di contesto clinico.'
+                            : 'Reperti morfologici altamente suggestivi. In assenza di dati clinici non è possibile raggiungere la soglia diagnostica piena. Richiedere urgentemente correlazione clinica (almeno età, VES/PCR, sintomi oculari).') + suboptimalWarning + modeNote
+                    };
+                }
+                if (compositeScore >= 20 && (majorCount >= 1 || minorCount >= 2)) {
+                    return {
+                        category:'ISTOLOGIA COMPATIBILE CON GCA — NON DIAGNOSTICA',
+                        color:'bg-yellow-100 border-yellow-500',
+                        icon:<Info className="text-yellow-600"/>,
+                        text:'Reperti morfologici compatibili ma non diagnostici. Notizie cliniche non disponibili.',
+                        driverLabel:'— morfologia (notizie cliniche non disponibili)',
+                        recommendation:'Quadro compatibile ma aspecifico senza ancoraggio clinico. Possibile variante senza cellule giganti (20–30% dei casi). Richiedere dati clinici minimi (età, indici infiammatori, sintomi).' + suboptimalWarning + modeNote
+                    };
+                }
+                if (compositeScore >= 10) {
+                    return {
+                        category:'BASSA CONCORDANZA MORFOLOGICA CON GCA',
+                        color:'bg-blue-100 border-blue-400',
+                        icon:<Info className="text-blue-600"/>,
+                        text:'Scarsa concordanza morfologica con GCA. Notizie cliniche non disponibili.',
+                        driverLabel:'— morfologia (notizie cliniche non disponibili)',
+                        recommendation:'Alterazioni aspecifiche o scarsamente rappresentative. DD: vasculite ANCA-associata, arterite di Takayasu, vasculite IgG4-correlata, aterosclerosi accelerata.' + suboptimalWarning + modeNote
+                    };
+                }
+                return {
+                    category:'BIOPSIA NEGATIVA / NON CONCLUSIVA',
+                    color:'bg-green-100 border-green-500',
+                    icon:<CheckCircle className="text-green-600"/>,
+                    text:'Non concordante con GCA (soli criteri morfologici)',
+                    driverLabel:'— morfologia (notizie cliniche non disponibili)',
+                    recommendation: (steroidPenalty > 0
+                        ? 'Reperti non diagnostici. Biopsia sotto steroidi — sensibilità ridotta. Se sospetto clinico persiste: eco-Doppler bilaterale, biopsia controlaterale, PET-TC.'
+                        : 'Biopsia negativa per GCA. Skip lesions nel ~10–15% dei casi. Se sospetto clinico elevato: eco-Doppler bilaterale, biopsia controlaterale.') + suboptimalWarning + modeNote
+                };
+            }
+
+            // ── MODALITÀ PARZIALE: soglie standard ma nota esplicita ────────
+            const partialNote = clinicalMode === 'partial'
+                ? ' | ⚠ Dati clinici incompleti: score conservativo (pesi 80/20). I parametri clinici non inseriti sono conteggiati come assenti — lo score composito sottostima la probabilità reale.'
+                : '';
+
+            // ── MODALITÀ COMPLETA + PARZIALE: logica standard ───────────────
             if (compositeScore >= 70 && majorCount >= 2 && hasCoreCriteria) {
                 return {
                     category:'ISTOLOGIA DIAGNOSTICA PER GCA',
@@ -227,11 +291,10 @@
                     icon:<AlertCircle className="text-red-600"/>,
                     text:'Arterite a cellule giganti — diagnosi istologica',
                     driverLabel,
-                    recommendation:'Reperti morfologici e contesto clinico fortemente concordanti. Core criteria presenti (CG e/o granulomatosa organizzata). Procedere con trattamento secondo linee guida.' + suboptimalWarning
+                    recommendation:'Reperti morfologici e contesto clinico fortemente concordanti. Core criteria presenti (CG e/o granulomatosa organizzata). Procedere con trattamento secondo linee guida.' + suboptimalWarning + partialNote
                 };
             }
             if (compositeScore >= 55 && (majorCount >= 1 || (minorCount >= 3 && clinicalScore >= 50))) {
-                // Typo fix: isClincallyDriven → isClinicallyDriven (#A)
                 const isClinicallyDriven = driver === 'clinical';
                 return {
                     category: isClinicallyDriven ? 'ISTOLOGIA COMPATIBILE — CLINICA ALTAMENTE SUGGESTIVA' : 'ALTAMENTE SUGGESTIVO PER GCA',
@@ -241,7 +304,7 @@
                     driverLabel,
                     recommendation: (steroidPenalty > 0
                         ? 'Biopsia sotto steroidi (sensibilità ridotta già dopo 3–5 gg). Reperti compatibili — interpretare con cautela. Considerare eco-Doppler e/o PET-TC.'
-                        : 'Correlazione clinico-laboratoristica raccomandata. Considerare inizio terapia contestualmente all\'iter diagnostico.') + suboptimalWarning
+                        : 'Correlazione clinico-laboratoristica raccomandata. Considerare inizio terapia contestualmente all\'iter diagnostico.') + suboptimalWarning + partialNote
                 };
             }
             if (compositeScore >= 40 && clinicalScore >= 40) {
@@ -251,7 +314,7 @@
                     icon:<Info className="text-yellow-600"/>,
                     text:'Biopsia compatibile, non diagnostica. Contesto clinico suggestivo.',
                     driverLabel,
-                    recommendation:'Reperti compatibili ma non diagnostici. Possibile variante senza cellule giganti (20–30% dei casi). Raccomandati: eco-Doppler temporale/ascellare, eventuale PET-TC, biopsia controlaterale.' + suboptimalWarning
+                    recommendation:'Reperti compatibili ma non diagnostici. Possibile variante senza cellule giganti (20–30% dei casi). Raccomandati: eco-Doppler temporale/ascellare, eventuale PET-TC, biopsia controlaterale.' + suboptimalWarning + partialNote
                 };
             }
             if (compositeScore >= 25) {
@@ -261,7 +324,7 @@
                     icon:<Info className="text-blue-600"/>,
                     text:'Scarsa concordanza morfologica e clinica con GCA',
                     driverLabel,
-                    recommendation:'Alterazioni aspecifiche o scarsamente rappresentative. DD: vasculite ANCA-associata, arterite di Takayasu, vasculite IgG4-correlata, aterosclerosi accelerata.' + suboptimalWarning
+                    recommendation:'Alterazioni aspecifiche o scarsamente rappresentative. DD: vasculite ANCA-associata, arterite di Takayasu, vasculite IgG4-correlata, aterosclerosi accelerata.' + suboptimalWarning + partialNote
                 };
             }
             return {
@@ -272,7 +335,7 @@
                 driverLabel,
                 recommendation: (steroidPenalty > 0
                     ? 'Reperti non diagnostici. Biopsia sotto steroidi — sensibilità ridotta dopo 7–14 gg. Se sospetto clinico persiste: eco-Doppler bilaterale, biopsia controlaterale, PET-TC.'
-                    : 'Biopsia negativa per GCA. Skip lesions nel ~10–15% dei casi. Se sospetto clinico elevato: eco-Doppler bilaterale, biopsia controlaterale, imaging grandi vasi.') + suboptimalWarning
+                    : 'Biopsia negativa per GCA. Skip lesions nel ~10–15% dei casi. Se sospetto clinico elevato: eco-Doppler bilaterale, biopsia controlaterale, imaging grandi vasi.') + suboptimalWarning + partialNote
             };
         };
 
@@ -318,19 +381,121 @@
             return recs;
         };
 
+        /* ── GENERAZIONE REFERTO ─────────────────────────────────────────── */
+        const generateReferto = (sc, diag, mode, smplAdq, majF, minF, clinData, ihcMk, hardIncons) => {
+            const vMaj = sc.validMajorFindings || {};
+            const vMin = sc.validMinorFindings || {};
+
+            // Campione non refertabile
+            if (!smplAdq.arterialStructure) {
+                return `ARTERIA TEMPORALE — BIOPSIA\n\nADEGUATEZZA DEL CAMPIONE:\nIl campione non contiene struttura arteriosa identificabile (intima, media e avventizia non riconoscibili). Non refertabile per arterite a cellule giganti.\n\nCONCLUSIONE:\nIl campione non è valutabile istologicamente per assenza di struttura vascolare. La diagnosi di arterite a cellule giganti non può essere applicata. Si raccomanda nuovo prelievo adeguato.`;
+            }
+
+            // Adeguatezza
+            const len = parseFloat(smplAdq.length);
+            const sec = parseInt(smplAdq.sections);
+            let adeqText = '';
+            if (!isNaN(len) && !isNaN(sec)) adeqText = `Frammento di ${len} mm; ${sec} sezioni analizzate serialmente.`;
+            else if (!isNaN(len)) adeqText = `Frammento di ${len} mm; numero di sezioni non specificato.`;
+            else if (!isNaN(sec)) adeqText = `${sec} sezioni analizzate; lunghezza frammento non specificata.`;
+            else adeqText = `Dimensioni campione non specificate.`;
+            adeqText += ` Struttura arteriosa presente (intima-media-avventizia identificabili).`;
+            adeqText += ` Colorazione elastica ${smplAdq.elasticStain ? 'eseguita (Verhoeff-Van Gieson o equivalente)' : 'non eseguita'}.`;
+
+            // Reperti istologici
+            const findings = [];
+            if (vMaj.giantCells)             findings.push('— Cellule giganti multinucleate a livello della giunzione intima-media');
+            if (vMaj.granulomatous)           findings.push('— Infiammazione granulomatosa organizzata: aggregati macrofagici centrati sulla lamina elastica interna con distruzione elastica');
+            if (vMaj.transmuralInflammation)  findings.push('— Infiammazione transmurale (intima, media e avventizia)');
+            if (vMaj.elasticFragmentation)    findings.push('— Frammentazione della lamina elastica interna (>30%) in associazione con infiltrato infiammatorio attivo');
+            if (vMin.lymphocyticInfiltrate)   findings.push('— Infiltrato linfocitario nella media e nell\'intima');
+            if (vMin.intimalThickening)       findings.push('— Ispessimento intimale concentrico');
+            if (vMin.adventitialInflammation) findings.push('— Infiltrato infiammatorio avventiziale/periavventiziale');
+            if (vMin.neovascularization)      findings.push('— Neovascolarizzazione della parete vascolare');
+            if (vMin.focalElasticFragmentation) findings.push('— Frammentazione focale della lamina elastica interna (<30%) in associazione con infiltrato infiammatorio');
+            if (minF.eosinophils)             findings.push('— Eosinofili intraparietali (reperto atipico per GCA; escludere EGPA e vasculiti ANCA-eosinofiliche)');
+
+            // Red flag findings
+            const rfFindings = [];
+            if (diag.blocked !== 'inadequate') {
+                if (redFlags.atypicalLymphoid)     rfFindings.push('— Cellule linfoidi atipiche intravascolari (sospetto linfoma intravascolare — IHC urgente: CD20, CD3, MUM1, Ki67)');
+                if (redFlags.necrotizingGranulomas) rfFindings.push('— Granulomi con necrosi centrale (escludere arterite infettiva: ZN, PAS+GMS)');
+                if (redFlags.necrotizingVasculitis) rfFindings.push('— Vasculite necrotizzante/necrosi fibrinoide di parete con infiltrato neutrofilico prominente (escludere vasculite ANCA-associata, PAN)');
+            }
+
+            // IHC
+            const ihcDone = [];
+            if (ihcMk.cd68) ihcDone.push('CD68');
+            if (ihcMk.cd4)  ihcDone.push('CD4');
+            if (ihcMk.cd8)  ihcDone.push('CD8');
+            if (ihcMk.cd3)  ihcDone.push('CD3');
+            if (ihcMk.cd20) ihcDone.push('CD20');
+
+            // Conclusione — calibrata sulla categoria
+            let concl = '';
+            if (hardIncons) {
+                concl = 'NOTA: Sono presenti incoerenze logiche nei dati inseriti. Il referto automatico non è affidabile nella versione attuale. Correggere le incoerenze prima di procedere alla refertazione definitiva.';
+            } else if (rfFindings.length > 0) {
+                concl = 'Il quadro morfologico presenta reperti inattesi che orientano verso diagnosi alternative (vedere sezione reperti inattesi). La diagnosi di arterite a cellule giganti, ove applicabile, è da considerarsi diagnosi secondaria subordinata all\'esclusione dei pattern morfologici alternativi identificati.';
+            } else {
+                const cat = diag.category || '';
+                if (cat.includes('DIAGNOSTICA')) {
+                    concl = 'Il quadro istologico è diagnostico per arterite a cellule giganti (GCA / arterite temporale di Horton).';
+                } else if (cat.includes('ALTAMENTE SUGGESTIV') && !cat.includes('CLINICA')) {
+                    concl = 'Il quadro istologico è altamente suggestivo per arterite a cellule giganti. Si raccomanda correlazione con il contesto clinico-laboratoristico per la decisione terapeutica.';
+                } else if (cat.includes('CLINICA ALTAMENTE SUGGESTIVA')) {
+                    concl = 'Il quadro istologico è compatibile con arterite a cellule giganti, pur in assenza di reperti patognomonici. Il contesto clinico è altamente suggestivo per GCA; si raccomanda avvio dell\'iter terapeutico contestualmente all\'integrazione diagnostica (eco-Doppler, eventuale PET-TC).';
+                } else if (cat.includes('NON DIAGNOSTICA') || cat.includes('COMPATIBILE CON GCA')) {
+                    concl = 'Il quadro istologico è compatibile con arterite a cellule giganti, in assenza di reperti patognomonici. La diagnosi richiede necessaria integrazione con il contesto clinico-laboratoristico e imaging vascolare (eco-Doppler temporale/ascellare bilaterale, eventuale PET-TC).';
+                } else if (cat.includes('BASSA CONCORDANZA')) {
+                    concl = 'Il quadro istologico mostra alterazioni infiammatorie vascolari aspecifiche, a bassa concordanza con arterite a cellule giganti. Si raccomanda diagnosi differenziale con vasculite ANCA-associata, arterite di Takayasu e vasculite IgG4-correlata.';
+                } else {
+                    concl = 'Non si identificano reperti istologici specifici riferibili ad arterite a cellule giganti nelle sezioni esaminate.';
+                }
+            }
+
+            // Note aggiuntive
+            const notes = [];
+            if (mode === 'none') {
+                notes.push('Referto emesso in assenza di notizie cliniche. La diagnosi si basa esclusivamente sui reperti morfologici. Si raccomanda integrazione con il contesto clinico-anamnestico al momento della valutazione clinica.');
+            } else if (mode === 'partial') {
+                notes.push('Dati clinici incompleti al momento della refertazione. La valutazione è basata prevalentemente sui reperti morfologici (pesi 80/20). Ogni integrazione anamnestica potrà modificare la categoria diagnostica.');
+            }
+            if (clinData.onSteroids) {
+                const days = parseInt(clinData.steroidDays) || 0;
+                notes.push(`Il paziente è in terapia corticosteroidea${days > 0 ? ` da ${days} giorno/i` : ''}. La sensibilità bioptica è ridotta${days >= 7 ? ' in misura significativa' : ' già a partire dai primi giorni di terapia'}; una biopsia negativa o con reperti aspecifici non esclude la diagnosi di GCA in questo contesto clinico.`);
+            }
+
+            // Assemblaggio
+            let r = `ARTERIA TEMPORALE — BIOPSIA\n\n`;
+            r += `ADEGUATEZZA DEL CAMPIONE:\n${adeqText}\n\n`;
+            r += `REPERTI ISTOLOGICI:\n`;
+            r += findings.length > 0 ? findings.join('\n') : '— Non si identificano reperti infiammatori specifici nelle sezioni esaminate.';
+            if (rfFindings.length > 0) {
+                r += `\n\nREPERTI INATTESI / RED FLAG:\n${rfFindings.join('\n')}`;
+            }
+            if (ihcDone.length > 0) {
+                r += `\n\nIMMUNOISTOCHIMICA ESEGUITA: ${ihcDone.join(', ')}`;
+            }
+            r += `\n\nCONCLUSIONE:\n${concl}`;
+            if (notes.length > 0) {
+                r += `\n\nNOTE:\n${notes.map((n,i) => `${i+1}. ${n}`).join('\n')}`;
+            }
+            return r;
+        };
+
         /* ── CALCOLI ─────────────────────────────────────────────────────── */
         const validationWarnings = getValidationWarnings();
         const hardInconsistency  = validationWarnings.some(w => w.level === 'error');
         const scores             = calculateScore();
         const diagnosis          = getDiagnosis(scores, hardInconsistency);
         const ihcRecs            = getIhcRecommendations(scores);
+        const autoReferto        = generateReferto(scores, diagnosis, clinicalMode, sampleAdequacy, majorFindings, minorFindings, clinicalData, ihcMarkers, hardInconsistency);
+        const refertoText        = refertoOverride !== null ? refertoOverride : autoReferto;
 
         const isBlockedInadequate   = diagnosis.blocked === 'inadequate';
         const isBlockedInconsistent = diagnosis.blocked === 'inconsistent';
         const isBlockedRedFlag      = scores.hasRedFlags && !isBlockedInadequate;
-        // Box GCA secondario: solo se red flag attivo E non c'è anche hardInconsistency.
-        // Con entrambi, diagnosis.category sarebbe "VALUTAZIONE NON AFFIDABILE",
-        // non una vera categoria GCA — mostrarlo come secondario sarebbe concettualmente sbagliato.
         const showSecondaryGCABlock = isBlockedRedFlag && !isBlockedInconsistent;
 
         const ab = (() => {
@@ -343,6 +508,12 @@
             }
         })();
 
+        // Etichette peso per display
+        const { h: hw, c: cw } = getWeights();
+        const weightLabel = clinicalMode === 'none'    ? '100% istologia / 0% clinica'
+                          : clinicalMode === 'partial' ? '80% istologia / 20% clinica'
+                          :                              '60% istologia / 40% clinica';
+
         const resetAll = () => {
             setSampleAdequacy({length:'',arterialStructure:false,sections:'',elasticStain:false});
             setMajorFindings({giantCells:false,granulomatous:false,elasticFragmentation:false,transmuralInflammation:false});
@@ -350,6 +521,8 @@
             setClinicalData({age:'',newHeadache:false,jawClaudication:false,visualSymptoms:false,esr:'',crp:false,haloSign:false,onSteroids:false,steroidDays:''});
             setIhcMarkers({cd68:false,cd4:false,cd8:false,cd3:false,cd20:false});
             setRedFlags({atypicalLymphoid:false,necrotizingGranulomas:false,necrotizingVasculitis:false});
+            setClinicalMode('full');
+            setRefertoOverride(null);
         };
 
         /* ── RENDER ──────────────────────────────────────────────────────── */
@@ -372,6 +545,51 @@
                         <strong>Avvertenza metodologica:</strong> Scoring euristico non validato prospetticamente. I livelli di concordanza sono categorie qualitative, non probabilità calibrate. <strong>Non implementa i criteri ACR/EULAR 2023 in senso stretto. La diagnosi rimane esclusiva responsabilità del patologo e del clinico refertante.</strong>
                     </p>
                 </div>
+            </div>
+
+            {/* ═══ SELETTORE MODALITÀ DATI CLINICI ═══ */}
+            <div className="bg-white rounded-lg shadow-md p-5 mb-6 border-2 border-indigo-200">
+                <h2 className="text-lg font-bold text-indigo-900 mb-3">Disponibilità dati clinici</h2>
+                <p className="text-xs text-gray-500 mb-3">Questa scelta modifica i pesi dello score composito e le soglie diagnostiche.</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* COMPLETI */}
+                    <label className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${clinicalMode==='full' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300'}`}>
+                        <input type="radio" name="clinicalMode" value="full" checked={clinicalMode==='full'} onChange={()=>setClinicalMode('full')} className="mt-0.5 text-indigo-600"/>
+                        <div>
+                            <p className="font-semibold text-gray-800 text-sm">Dati clinici completi</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Anamnesi e laboratorio disponibili</p>
+                            <p className="text-xs font-mono text-indigo-600 mt-1">60% isto · 40% clinica</p>
+                        </div>
+                    </label>
+                    {/* PARZIALI */}
+                    <label className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${clinicalMode==='partial' ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-orange-300'}`}>
+                        <input type="radio" name="clinicalMode" value="partial" checked={clinicalMode==='partial'} onChange={()=>setClinicalMode('partial')} className="mt-0.5 text-orange-600"/>
+                        <div>
+                            <p className="font-semibold text-gray-800 text-sm">Dati clinici parziali</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Solo alcuni dati disponibili (es. "cecità improvvisa", età)</p>
+                            <p className="text-xs font-mono text-orange-600 mt-1">80% isto · 20% clinica</p>
+                        </div>
+                    </label>
+                    {/* SOLO ISTOLOGIA */}
+                    <label className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${clinicalMode==='none' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-red-300'}`}>
+                        <input type="radio" name="clinicalMode" value="none" checked={clinicalMode==='none'} onChange={()=>setClinicalMode('none')} className="mt-0.5 text-red-600"/>
+                        <div>
+                            <p className="font-semibold text-gray-800 text-sm">Solo istologia</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Notizie cliniche non disponibili al referto</p>
+                            <p className="text-xs font-mono text-red-600 mt-1">100% isto · soglie ricalibrate</p>
+                        </div>
+                    </label>
+                </div>
+                {clinicalMode === 'none' && (
+                    <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                        <strong>Modalità istologia pura:</strong> La sezione Dati Clinici rimane compilabile ma non contribuisce allo score composito. Se si dispone anche di un solo dato clinico rilevante (età ≥70, sintomi oculari, claudicatio), considerare la modalità <em>Parziale</em>.
+                    </div>
+                )}
+                {clinicalMode === 'partial' && (
+                    <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
+                        <strong>Modalità parziale:</strong> Inserire solo i dati clinici effettivamente disponibili. I campi vuoti sono conteggiati come assenti — lo score è conservativo per costruzione. Ogni dato aggiunto migliora la stima.
+                    </div>
+                )}
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
@@ -424,7 +642,6 @@
                         <span className="text-sm font-normal text-gray-500 ml-2">(pesi gerarchizzati per specificità)</span>
                     </h2>
                     <div className="space-y-3">
-                        {/* giantCells */}
                         <label className={`flex items-start space-x-2 cursor-pointer ${!hasArterialStructure?'cb-disabled':''}`}>
                             <input type="checkbox" checked={majorFindings.giantCells}
                                 onChange={e=>setMajorFindings({...majorFindings,giantCells:e.target.checked})}
@@ -436,7 +653,6 @@
                                 {!hasArterialStructure && <span className="text-xs text-red-400 ml-1">[disabilitato: struttura assente]</span>}
                             </span>
                         </label>
-                        {/* granulomatous — label dinamica (#4 review) */}
                         <label className={`flex items-start space-x-2 cursor-pointer ${!hasArterialStructure?'cb-disabled':''}`}>
                             <input type="checkbox" checked={majorFindings.granulomatous}
                                 onChange={e=>setMajorFindings({...majorFindings,granulomatous:e.target.checked})}
@@ -450,7 +666,6 @@
                                 <span className="block text-xs text-gray-400">— non semplice infiltrato macrofagico diffuso</span>
                             </span>
                         </label>
-                        {/* elasticFragmentation — disabilitata senza elastica o senza infiammazione */}
                         <label className={`flex items-start space-x-2 cursor-pointer ${!canUseElastic?'cb-disabled':''}`}>
                             <input type="checkbox" checked={majorFindings.elasticFragmentation}
                                 onChange={e=>setMajorFindings({...majorFindings,elasticFragmentation:e.target.checked})}
@@ -464,7 +679,6 @@
                                 <span className="block text-xs text-gray-400">— richiede VVG eseguita + infiammazione attiva coesistente</span>
                             </span>
                         </label>
-                        {/* transmuralInflammation */}
                         <label className={`flex items-start space-x-2 cursor-pointer ${!hasArterialStructure?'cb-disabled':''}`}>
                             <input type="checkbox" checked={majorFindings.transmuralInflammation}
                                 onChange={e=>setMajorFindings({...majorFindings,transmuralInflammation:e.target.checked})}
@@ -507,7 +721,6 @@
                                 </span>
                             </label>
                         ))}
-                        {/* focalElasticFragmentation — gated */}
                         <label className={`flex items-start space-x-2 cursor-pointer ${!canUseElastic?'cb-disabled':''}`}>
                             <input type="checkbox" checked={minorFindings.focalElasticFragmentation}
                                 onChange={e=>setMinorFindings({...minorFindings,focalElasticFragmentation:e.target.checked})}
@@ -519,7 +732,6 @@
                                 {sampleAdequacy.elasticStain && !hasActiveInflammation && <span className="text-xs text-red-400 ml-1">— disabilitato: nessun reperto infiammatorio attivo</span>}
                             </span>
                         </label>
-                        {/* eosinophils — DD alert, non score */}
                         <label className="flex items-start space-x-2 cursor-pointer">
                             <input type="checkbox" checked={minorFindings.eosinophils}
                                 onChange={e=>setMinorFindings({...minorFindings,eosinophils:e.target.checked})}
@@ -556,7 +768,6 @@
                                 <span className="block text-xs text-gray-500 mt-0.5">Necrosi fibrinoide/caseosa al centro dei granulomi — eccezionale in GCA, suggestiva di eziologia infettiva</span>
                             </span>
                         </label>
-                        {/* Terza red flag (#6 review) */}
                         <label className="flex items-start space-x-2 cursor-pointer">
                             <input type="checkbox" checked={redFlags.necrotizingVasculitis}
                                 onChange={e=>setRedFlags({...redFlags,necrotizingVasculitis:e.target.checked})}
@@ -570,9 +781,16 @@
                 </div>
 
                 {/* 4. DATI CLINICI */}
-                <div className="bg-white rounded-lg shadow-md p-5">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">4. Dati Clinici</h2>
-                    <div className="space-y-3">
+                <div className={`bg-white rounded-lg shadow-md p-5 ${clinicalMode==='none' ? 'opacity-60' : ''}`}>
+                    <h2 className="text-xl font-bold text-gray-800 mb-1 border-b pb-2">
+                        4. Dati Clinici
+                        {clinicalMode === 'none' && <span className="text-sm font-normal text-red-500 ml-2">(non contribuisce allo score — modalità solo istologia)</span>}
+                        {clinicalMode === 'partial' && <span className="text-sm font-normal text-orange-500 ml-2">(inserire solo i dati disponibili)</span>}
+                    </h2>
+                    {clinicalMode === 'none' && (
+                        <p className="text-xs text-gray-500 italic mb-3 mt-1">I dati inseriti qui saranno mostrati nel riepilogo ma non modificano lo score composito in modalità "Solo istologia".</p>
+                    )}
+                    <div className="space-y-3 mt-3">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Età paziente (anni)</label>
                             <input type="number" value={clinicalData.age} onChange={e=>setClinicalData({...clinicalData,age:e.target.value})}
@@ -632,6 +850,16 @@
             {/* ═══ COLONNA DESTRA (OUTPUT) ═══ */}
             <div className="space-y-6">
 
+                {/* BADGE MODALITÀ ATTIVA */}
+                <div className={`rounded-lg p-3 border-2 text-sm font-semibold flex items-center gap-2 ${
+                    clinicalMode==='none'    ? 'bg-red-50 border-red-400 text-red-800' :
+                    clinicalMode==='partial' ? 'bg-orange-50 border-orange-400 text-orange-800' :
+                                              'bg-indigo-50 border-indigo-400 text-indigo-800'
+                }`}>
+                    <span>{clinicalMode==='none' ? '🔬' : clinicalMode==='partial' ? '⚠' : '✓'}</span>
+                    <span>Modalità: <strong>{clinicalMode==='none' ? 'Solo istologia' : clinicalMode==='partial' ? 'Dati clinici parziali' : 'Dati clinici completi'}</strong> — pesi {weightLabel}</span>
+                </div>
+
                 {/* AVVISI DI COERENZA */}
                 {validationWarnings.length > 0 && (
                     <div className="bg-white rounded-lg shadow-md p-5 border-2 border-amber-400">
@@ -640,7 +868,7 @@
                         </h2>
                         {hardInconsistency && (
                             <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-300 rounded px-2 py-1 mb-2">
-                                ⛔ Incoerenze bloccanti presenti: la categoria diagnostica è sospesa fino alla correzione. Alcuni reperti risultano selezionati ma non più validi nelle condizioni correnti — deselezionarli o ripristinare le condizioni di contesto.
+                                ⛔ Incoerenze bloccanti presenti: la categoria diagnostica è sospesa fino alla correzione.
                             </p>
                         )}
                         <div className="space-y-2">
@@ -667,12 +895,10 @@
                         {isBlockedInadequate && <span className="text-sm font-normal text-red-600 ml-2">(istologia non applicabile)</span>}
                     </h2>
                     <div className="space-y-3">
-                        {/* Score istologico — null se inadeguato */}
                         <div className="flex justify-between items-center">
                             <span className="text-gray-700">Score Istologico:</span>
                             <span className={`text-2xl font-bold ${isBlockedInadequate?'text-gray-400':hardInconsistency?'text-gray-500':'text-red-600'}`}>
                                 {scores.histoScore===null ? '—' : `${scores.histoScore}/100`}
-                                {hardInconsistency && scores.histoScore!==null && <span className="text-xs text-gray-400 ml-1">(non affidabile)</span>}
                             </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-3">
@@ -680,12 +906,17 @@
                                 style={{width:`${scores.histoScore!=null?Math.min(100,scores.histoScore):0}%`}}/>
                         </div>
 
+                        {/* Score clinico — mostrato sempre, ma etichetta varia con la modalità */}
                         <div className="flex justify-between items-center mt-4">
-                            <span className="text-gray-700">Score Clinico:</span>
-                            <span className="text-2xl font-bold text-blue-600">{scores.clinicalScore}/100</span>
+                            <span className="text-gray-700">
+                                Score Clinico:
+                                {clinicalMode === 'none' && <span className="text-xs text-red-500 ml-1">(non contribuisce)</span>}
+                                {clinicalMode === 'partial' && <span className="text-xs text-orange-500 ml-1">(peso 20%)</span>}
+                            </span>
+                            <span className={`text-2xl font-bold ${clinicalMode==='none'?'text-gray-400':'text-blue-600'}`}>{scores.clinicalScore}/100</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div className="bg-blue-500 h-3 rounded-full transition-all duration-500" style={{width:`${Math.min(100,scores.clinicalScore)}%`}}/>
+                            <div className={`h-3 rounded-full transition-all duration-500 ${clinicalMode==='none'?'bg-gray-300':'bg-blue-500'}`} style={{width:`${Math.min(100,scores.clinicalScore)}%`}}/>
                         </div>
                         {isBlockedInadequate && scores.clinicalScore >= 40 && (
                             <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
@@ -699,7 +930,7 @@
                             </div>
                         )}
 
-                        {/* Composito — null se inadeguato */}
+                        {/* Composito */}
                         <div className={`mt-4 pt-4 border-t-2 border-gray-300 ${isBlockedInadequate||hardInconsistency?'opacity-60':''}`}>
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-900 font-semibold">Score Composito:</span>
@@ -713,17 +944,17 @@
                             </div>
                             {!isBlockedInadequate && !hardInconsistency && scores.compositeScore!=null && (
                                 <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600 border border-gray-200">
-                                    <span className="font-semibold">Contributi:</span>
-                                    {' '}Istologia (60%) <span className="text-red-600 font-semibold">+{scores.histoContrib}</span>
-                                    {' '}· Clinica (40%) <span className="text-blue-600 font-semibold">+{scores.clinicContrib}</span>
+                                    <span className="font-semibold">Contributi ({weightLabel}):</span>
+                                    {' '}Istologia ({Math.round(hw*100)}%) <span className="text-red-600 font-semibold">+{scores.histoContrib}</span>
+                                    {cw > 0 && <>{' '}· Clinica ({Math.round(cw*100)}%) <span className="text-blue-600 font-semibold">+{scores.clinicContrib}</span></>}
                                     {scores.steroidPenalty>0 && <span className="text-yellow-700"> · Steroidi <strong>−{scores.steroidPenalty}</strong></span>}
                                     {' '}— <span className={`font-semibold ${scores.driver==='morphology'?'text-red-600':scores.driver==='clinical'?'text-blue-600':'text-indigo-600'}`}>
                                         {scores.driver==='morphology'?'peso prevalente: morfologia':scores.driver==='clinical'?'peso prevalente: clinica':'morfologia e clinica bilanciate'}
                                     </span>
                                 </div>
                             )}
-                            {hardInconsistency && <p className="text-xs text-red-600 mt-1">⛔ Score barrato: incoerenze bloccanti attive. Correggere prima di interpretare.</p>}
-                            <p className="text-xs text-gray-400 mt-1">60% istologia + 40% clinica — pesi euristici, non validati prospetticamente</p>
+                            {hardInconsistency && <p className="text-xs text-red-600 mt-1">⛔ Score barrato: incoerenze bloccanti attive.</p>}
+                            <p className="text-xs text-gray-400 mt-1">{weightLabel} — pesi euristici, non validati prospetticamente</p>
                         </div>
                     </div>
                 </div>
@@ -737,7 +968,7 @@
                                 <h3 className="text-xl font-bold text-red-800 mb-1">NON VALUTABILE ISTOLOGICAMENTE</h3>
                                 <p className="text-sm font-semibold text-red-700 mb-2">Struttura arteriosa non identificabile — diagnosi istologica non applicabile</p>
                                 <div className="bg-white bg-opacity-60 rounded-md p-3">
-                                    <p className="text-sm text-red-800">La classificazione istologica non è possibile in assenza di struttura vascolare. Il sospetto clinico può restare elevato, ma questa biopsia non consente valutazione diagnostica. Richiedere nuovo prelievo adeguato.</p>
+                                    <p className="text-sm text-red-800">La classificazione istologica non è possibile in assenza di struttura vascolare. Richiedere nuovo prelievo adeguato.</p>
                                     {scores.clinicalScore >= 40 && (
                                         <p className="text-sm text-blue-800 mt-2 font-medium">Contesto clinico suggestivo (score clinico: {scores.clinicalScore}/100). Considerare eco-Doppler bilaterale, PET-TC o biopsia controlaterale.</p>
                                     )}
@@ -760,8 +991,7 @@
                                 <p className="font-bold text-red-800 text-sm mb-1">⚠ Sospetto Linfoma Intravascolare</p>
                                 <p className="text-xs text-gray-700 mb-2">Cellule linfoidi atipiche intravascolari — escludere linfoma intravascolare B o T.</p>
                                 <p className="text-xs font-semibold text-gray-800">IHC urgente: <span className="text-red-700">CD20, CD3, MUM1, Ki67</span></p>
-                                {/* Wording MUM1 più cauto (#7 review) */}
-                                <p className="text-xs text-gray-600 mt-1">Profilo CD20+/MUM1+ compatibile con IVLBCL a grandi cellule B — da integrare con morfologia complessiva e pannello esteso se necessario. CD3+: considerare variante T. Comunicare al clinico prima del referto definitivo.</p>
+                                <p className="text-xs text-gray-600 mt-1">Profilo CD20+/MUM1+ compatibile con IVLBCL a grandi cellule B — da integrare con morfologia complessiva e pannello esteso se necessario.</p>
                             </div>
                         )}
                         {redFlags.necrotizingGranulomas && (
@@ -769,21 +999,20 @@
                                 <p className="font-bold text-orange-800 text-sm mb-1">⚠ Sospetta Arterite Infettiva</p>
                                 <p className="text-xs text-gray-700 mb-2">Granulomi con necrosi centrale — eccezionale in GCA. Escludere TBC e micosi invasive.</p>
                                 <p className="text-xs font-semibold text-gray-800">Colorazioni speciali: <span className="text-orange-700">ZN (micobatteri), PAS + GMS (funghi)</span></p>
-                                <p className="text-xs text-gray-600 mt-1">Richiedere colture su tessuto fresco se disponibile.</p>
                             </div>
                         )}
                         {redFlags.necrotizingVasculitis && (
                             <div className="bg-white rounded-md p-3 border-l-4 border-purple-500">
                                 <p className="font-bold text-purple-800 text-sm mb-1">⚠ Vasculite Necrotizzante / Pattern Neutrofilico</p>
-                                <p className="text-xs text-gray-700 mb-2">Necrosi fibrinoide di parete o infiltrato neutrofilico transmurale con danno strutturale — pattern incompatibile con GCA classica.</p>
+                                <p className="text-xs text-gray-700 mb-2">Necrosi fibrinoide di parete o infiltrato neutrofilico transmurale — pattern incompatibile con GCA classica.</p>
                                 <p className="text-xs font-semibold text-gray-800">DD principale: <span className="text-purple-700">vasculite ANCA-associata (MPA, GPA), PAN</span></p>
-                                <p className="text-xs text-gray-600 mt-1">IHC supportiva: CD15/MPO per infiltrato neutrofilico. Sierologia: ANCA con differenziazione MPO/PR3. Contesto clinico: sintomi sistemici, interessamento renale, sinusite/emottisi (GPA).</p>
+                                <p className="text-xs text-gray-600 mt-1">Sierologia: ANCA con differenziazione MPO/PR3.</p>
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* CATEGORIA DIAGNOSTICA — visibile se non blocked */}
+                {/* CATEGORIA DIAGNOSTICA */}
                 {!isBlockedInadequate && !isBlockedRedFlag && (
                     <div className={`rounded-lg shadow-lg p-6 border-2 ${diagnosis.color}`}>
                         <div className="flex items-start space-x-4">
@@ -801,9 +1030,7 @@
                     </div>
                 )}
 
-                {/* GCA SECONDARIO — solo se red flag attivo E nessuna inconsistency bloccante.
-                    Con hardInconsistency, diagnosis.category è "VALUTAZIONE NON AFFIDABILE",
-                    non una vera categoria GCA: mostrarlo come secondario sarebbe concettualmente sbagliato. */}
+                {/* GCA SECONDARIO */}
                 {showSecondaryGCABlock && (
                     <div className="rounded-lg p-4 border border-gray-300 bg-gray-50 opacity-70">
                         <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Scoring GCA (secondario — vedere alert sopra)</p>
@@ -815,7 +1042,59 @@
                     </div>
                 )}
 
-                {/* RIEPILOGO REPERTI */}
+                {/* ═══ CAMPO REFERTO ═══ */}
+                {!isBlockedInadequate && (
+                <div className="bg-white rounded-lg shadow-md p-5 border-2 border-indigo-300">
+                    <div className="flex items-center justify-between mb-3 border-b pb-2">
+                        <h2 className="text-xl font-bold text-indigo-900">📋 Testo Referto</h2>
+                        <div className="flex gap-2">
+                            {refertoOverride !== null && (
+                                <button
+                                    onClick={()=>setRefertoOverride(null)}
+                                    className="text-xs px-3 py-1.5 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded border border-yellow-300 font-medium"
+                                    title="Ripristina il testo auto-generato">
+                                    ↺ Rigenera
+                                </button>
+                            )}
+                            <button
+                                onClick={()=>{
+                                    navigator.clipboard.writeText(refertoText).catch(()=>{
+                                        // fallback
+                                        const el = document.createElement('textarea');
+                                        el.value = refertoText;
+                                        document.body.appendChild(el);
+                                        el.select();
+                                        document.execCommand('copy');
+                                        document.body.removeChild(el);
+                                    });
+                                }}
+                                className="text-xs px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded border border-indigo-300 font-medium"
+                                title="Copia negli appunti">
+                                📋 Copia
+                            </button>
+                        </div>
+                    </div>
+                    {refertoOverride !== null && (
+                        <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1 mb-2">
+                            ✏ Testo modificato manualmente. Clicca "Rigenera" per ripristinare il testo automatico.
+                        </p>
+                    )}
+                    {hardInconsistency && (
+                        <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1 mb-2">
+                            ⛔ Incoerenze bloccanti presenti — il referto generato non è affidabile. Correggere prima di utilizzare.
+                        </p>
+                    )}
+                    <textarea
+                        value={refertoText}
+                        onChange={e => setRefertoOverride(e.target.value)}
+                        rows={18}
+                        spellCheck={true}
+                        className="w-full text-sm font-mono text-gray-800 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-400 resize-y leading-relaxed bg-gray-50"
+                        style={{fontFamily:"'Courier New', Courier, monospace", fontSize:'12.5px'}}
+                    />
+                    <p className="text-xs text-gray-400 mt-1.5 italic">Testo auto-generato dai reperti selezionati — editabile. Non include valori IHC quantitativi (da aggiungere manualmente).</p>
+                </div>
+                )}
                 <div className="bg-white rounded-lg shadow-md p-5">
                     <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Riepilogo Reperti</h2>
                     <div className="space-y-2 text-sm">
@@ -823,7 +1102,6 @@
                             <span className="text-gray-700">Reperti maggiori presenti:</span>
                             <span className="font-bold text-red-600">{scores.majorCount}/4</span>
                         </div>
-                        {/* #5 review: separare "score-positive" da "DD alert" */}
                         <div className="flex justify-between">
                             <span className="text-gray-700">Reperti minori score-positive:</span>
                             <span className="font-bold text-orange-600">{scores.minorCount}/5</span>
@@ -849,10 +1127,16 @@
                             <span className="text-gray-700">Adeguatezza campione:</span>
                             <span className={`font-bold ${ab.cls}`}>{ab.label}</span>
                         </div>
+                        <div className="flex justify-between pt-1 border-t border-gray-100">
+                            <span className="text-gray-700">Modalità calcolo:</span>
+                            <span className={`font-bold text-xs ${clinicalMode==='none'?'text-red-600':clinicalMode==='partial'?'text-orange-600':'text-indigo-600'}`}>
+                                {clinicalMode==='none' ? 'Solo istologia' : clinicalMode==='partial' ? 'Dati parziali (80/20)' : 'Completo (60/40)'}
+                            </span>
+                        </div>
                     </div>
-                    {scores.adequacyLevel==='suboptimal' && <div className="mt-2 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs text-yellow-800">Campione subottimale: refertabile ma con riserva. Se negativo con sospetto clinico elevato → nuovo prelievo o imaging.</div>}
+                    {scores.adequacyLevel==='suboptimal' && <div className="mt-2 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs text-yellow-800">Campione subottimale: refertabile ma con riserva.</div>}
                     {scores.adequacyLevel==='inadequate' && <div className="mt-2 p-2 bg-red-50 border border-red-400 rounded text-xs text-red-800"><strong>Campione non refertabile:</strong> struttura arteriosa non identificabile.</div>}
-                    {scores.adequacyLevel==='unknown' && <div className="mt-2 p-2 bg-gray-50 border border-gray-300 rounded text-xs text-gray-700">Dimensioni campione non inserite. Compilare per valutare l'adeguatezza.</div>}
+                    {scores.adequacyLevel==='unknown' && <div className="mt-2 p-2 bg-gray-50 border border-gray-300 rounded text-xs text-gray-700">Dimensioni campione non inserite.</div>}
                 </div>
 
                 {/* RACCOMANDAZIONI IHC */}
@@ -861,7 +1145,7 @@
                         <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Raccomandazioni IHC</h2>
                         {isBlockedInconsistent && (
                             <p className="text-xs text-gray-500 italic bg-gray-50 border border-gray-300 rounded px-2 py-1 mb-3">
-                                ⚠ Indicazioni preliminari — subordinate alla correzione delle incoerenze bloccanti sopra indicate.
+                                ⚠ Indicazioni preliminari — subordinate alla correzione delle incoerenze bloccanti.
                             </p>
                         )}
                         <div className="space-y-3">
@@ -893,14 +1177,14 @@
                         <div className="bg-white rounded-md p-3 border-l-4 border-orange-500">
                             <p className="font-bold text-orange-800 mb-1">COMPLETO (borderline / biopsia sotto steroidi)</p>
                             <ul className="text-gray-700 ml-4 space-y-1 text-xs">
-                                <li><strong>CD68 + CD4 + CD8</strong> — distribuzione compartimentale (pattern descritto; non specifico isolato)</li>
+                                <li><strong>CD68 + CD4 + CD8</strong> — distribuzione compartimentale</li>
                                 <li><strong>CD20</strong> — esclude IgG4-correlata, ANCA-associate</li>
                             </ul>
                         </div>
                         <div className="bg-white rounded-md p-3 border-l-4 border-blue-500">
                             <p className="font-bold text-blue-800 mb-1">Performance IHC (letteratura)</p>
                             <ul className="text-gray-700 ml-4 space-y-1 text-xs">
-                                <li><strong>CD68:</strong> 94% GCA morfologicamente confermate (Ciccia et al. 2023); sensibilità isolata ~69%</li>
+                                <li><strong>CD68:</strong> 94% GCA morfologicamente confermate (Ciccia et al. 2023)</li>
                                 <li>Rapporto CD4/CD8: pattern descritto — non criterio diagnostico autonomo (Weyand &amp; Goronzy 2023)</li>
                                 <li>CD20 abbondante → riconsiderare diagnosi</li>
                             </ul>
@@ -910,24 +1194,15 @@
 
                 {/* NOTE METODOLOGICHE */}
                 <div className="bg-indigo-50 rounded-lg p-5 text-xs">
-                    <h3 className="font-bold text-indigo-900 mb-2">Note metodologiche (v3.1)</h3>
+                    <h3 className="font-bold text-indigo-900 mb-2">Note metodologiche (v3.4.1)</h3>
                     <ul className="space-y-1 text-indigo-800">
-                        <li><strong>[v3.3]</strong> histoScore derivato dai reperti validati (validMajorFindings/validMinorFindings definiti prima del calcolo — unica fonte di verità)</li>
-                        <li><strong>[v3.3]</strong> showSecondaryGCABlock: box GCA secondario soppresso quando coesistono redFlag + hardInconsistency (diagnosis.category sarebbe "VALUTAZIONE NON AFFIDABILE", non una categoria GCA reale)</li>
-                        <li><strong>[v3.2]</strong> Classi Tailwind bibliography: sostituite classi dinamiche interpolate con mappa statica (sectionStyles) — compatibile con CDN</li>
-                        <li><strong>[v3.2]</strong> Warning inconsistency: esplicita il caso "reperto selezionato in precedenza ma non più valido nelle condizioni correnti"</li>
-                        <li><strong>[v3.2]</strong> IHC raccomandazioni sotto inconsistency: aggiunta nota "indicazioni preliminari, subordinate alla correzione"</li>
-                        <li><strong>[v3.2]</strong> Mahr et al.: anno corretto a 2006 con DOI verificabile; annotazione da verificare mantenuta</li>
-                        <li><strong>[v3.1]</strong> Gating elastica nel codice: elasticFragmentation e focalElasticFragmentation escluse dal calcolo se VVG non eseguita o nessun reperto infiammatorio attivo</li>
-                        <li><strong>[v3.1]</strong> Hard inconsistency: se warning error → categoria GCA bloccata "VALUTAZIONE NON AFFIDABILE", composito barrato</li>
-                        <li><strong>[v3.1]</strong> Checkbox dinamicamente disabilitate: reperti murali/CG senza struttura; frammentazione senza VVG o senza infiammazione</li>
-                        <li><strong>[v3.1]</strong> Label granulomatosa dinamica: 22 pt / 11 pt (ridotto) in tempo reale</li>
-                        <li><strong>[v3.1]</strong> Riepilogo: "Reperti minori score-positive: X/5" + "DD alert eosinofili" separati</li>
-                        <li><strong>[v3.1]</strong> Terza red flag: vasculite necrotizzante / infiltrato neutrofilico prominente</li>
-                        <li><strong>[v3.1]</strong> IHC IVLBCL: wording MUM1 più cauto ("profilo compatibile, da integrare")</li>
-                        <li><strong>[v3.1]</strong> Typo fix: isClincallyDriven → isClinicallyDriven</li>
-                        <li><strong>[v3.0]</strong> Etichette patologo-centriche; hard stop inadequato; red flag primario; trasparenza driver; validazione coerenza; eosinofili DD alert; damping granulomatosa 50%</li>
-                        <li><strong>[v2.9]</strong> Score clinico/composito cappati a 100; adeguatezza a 4 livelli</li>
+                        <li><strong>[v3.4.1]</strong> Campo referto auto-generato: testo editabile con linguaggio calibrato sulla categoria diagnostica. Bottone Copia + Rigenera. Aggiornato in tempo reale con i reperti selezionati.</li>
+                        <li><strong>[v3.4]</strong> Modalità disponibilità dati clinici: Full (60/40) / Parziale (80/20) / Solo istologia (100% histo). Soglie diagnostiche ricalibrate per modalità "solo istologia". Score clinico sempre calcolato e visualizzato ma con peso 0 in modalità "none".</li>
+                        <li><strong>[v3.4]</strong> In modalità "solo istologia": DIAGNOSTICA ≥55 + ≥2 maggiori + core criteria; ALTAMENTE SUGGESTIVA ≥40 + ≥1 maggiore; COMPATIBILE ≥20 + (≥1 maggiore o ≥2 minori); BASSA CONCORDANZA ≥10; NEGATIVA &lt;10.</li>
+                        <li><strong>[v3.4]</strong> Tutte le categorie in modalità "solo istologia" riportano esplicitamente l'assenza di dati clinici nella raccomandazione.</li>
+                        <li><strong>[v3.3]</strong> histoScore derivato dai reperti validati (unica fonte di verità); showSecondaryGCABlock soppresso con redFlag + hardInconsistency coesistenti</li>
+                        <li><strong>[v3.2]</strong> Classi Tailwind statiche; warning inconsistency esplicito; IHC recs con nota "subordinate alla correzione"</li>
+                        <li><strong>[v3.1]</strong> Gating elastica; hard inconsistency; checkbox dinamiche; label granulomatosa dinamica; terza red flag; wording MUM1 cauto</li>
                         <li><strong>Limite epistemologico:</strong> il composito non è una probabilità calibrata. Il giudizio morfologico prevale sull'algoritmo.</li>
                     </ul>
                 </div>
@@ -939,7 +1214,6 @@
                 <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b-2 border-indigo-200 pb-2">Bibliografia di Riferimento</h2>
                 <div className="space-y-4 text-sm">
                     {(() => {
-                        // Mappa statica — Tailwind CDN non purga classi dinamiche interpolate
                         const sectionStyles = {
                             indigo: { title:'text-indigo-900', border:'border-indigo-300', link:'text-indigo-600' },
                             red:    { title:'text-red-900',    border:'border-red-300',    link:'text-red-600'    },
@@ -966,8 +1240,6 @@
                             ]},
                             {title:'Biopsia temporale: tecnica e sensibilità', color:'orange', refs:[
                                 {auth:'Ing EB, Sivarajan V, Rotondo RL, et al.',year:'2023',title:'Temporal artery biopsy yield in patients on glucocorticoid therapy for suspected GCA: systematic review and meta-analysis',j:'J Neuroophthalmol.',vol:'43(4):462-471',doi:'10.1097/WNO.0000000000001943'},
-                                // ⚠ Nota: Mahr A et al. — verificare anno/volume (65(6) è compatibile con 2006, non 2021)
-                                // da verificare prima di upload definitivo
                                 {auth:'Mahr A, Saba M, Kambouchner M, et al.',year:'2006 [da verificare]',title:'Temporal artery biopsy for diagnosing GCA: the longer, the better?',j:'Ann Rheum Dis.',vol:'65(6):826-828',doi:'10.1136/ard.2005.040899'},
                             ]},
                             {title:'Imaging e correlazione con istologia', color:'green', refs:[
@@ -1009,7 +1281,7 @@
                     <div className="text-xs text-gray-600">
                         <p>Algoritmo euristico ispirato a criteri ACR/EULAR 2023 — pesi non validati prospetticamente</p>
                         <p className="mt-1">Strumento di supporto — non sostituisce il giudizio clinico-patologico</p>
-                        <p className="mt-2 text-indigo-600 font-semibold">v3.3 — Marzo 2026</p>
+                        <p className="mt-2 text-indigo-600 font-semibold">v3.4.1 — Marzo 2026</p>
                         <div className="mt-2 pt-2 border-t border-gray-200">
                             <a href="https://github.com/Infingardo/arteriti/blob/main/bigino_vasculiti.pdf" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">📄 Bigino vasculiti (PDF)</a>
                         </div>
@@ -1023,7 +1295,6 @@
         );
     }
 
-    /* ── MOUNT — React 18 createRoot ──────────────────────────────────── */
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<GCAScorer/>);
 </script>
