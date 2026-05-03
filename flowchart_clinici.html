@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Come inviare i dati clinici — Biopsia Arteria Temporale</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root {
+  --blue:      #1e2d6b;
+  --blue-mid:  #3d52a0;
+  --blue-pale: #eef1fb;
+  --red:       #b01e1e;
+  --red-pale:  #fdf0f0;
+  --green:     #1a5e35;
+  --green-pale:#f0faf4;
+  --green-brd: #2e9e5b;
+  --amber:     #8a5200;
+  --amber-pale:#fff8ed;
+  --amber-brd: #d4920a;
+  --gray:      #4a4a5a;
+  --rule:      #c8cce0;
+  --ink:       #12122a;
+  --page:      #ffffff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: #d0d4e8;
+  color: var(--ink);
+}
+
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 10mm auto;
+  background: var(--page);
+  box-shadow: 0 6px 32px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+/* HEADER */
+.header {
+  background: var(--blue);
+  color: white;
+  padding: 12px 18px 10px;
+}
+.header-sc {
+  font-size: 6.5pt;
+  font-family: 'IBM Plex Mono', monospace;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+.header-title {
+  font-size: 16pt;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  line-height: 1.15;
+}
+.header-title span { color: #7eb8ff; }
+.header-sub {
+  font-size: 8.5pt;
+  opacity: 0.75;
+  margin-top: 3px;
+  font-style: italic;
+}
+.header-rule {
+  height: 3px;
+  background: linear-gradient(90deg, var(--red) 0%, #3d52a0 50%, transparent 100%);
+  margin-top: 8px;
+}
+
+/* FLOW CONTAINER */
+.flow-container {
+  flex: 1;
+  padding: 16px 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* STEP */
+.step {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 0 14px;
+  align-items: stretch;
+  position: relative;
+}
+
+/* NUMBER COLUMN */
+.step-num-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.step-num {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20pt;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+  z-index: 1;
+}
+.step-line {
+  width: 3px;
+  flex: 1;
+  background: var(--rule);
+  margin: 3px 0;
+}
+.step-line.last { display: none; }
+
+/* STEP CARD */
+.step-card {
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border: 2px solid transparent;
+  position: relative;
+}
+.step-card.blue  { background: var(--blue-pale);  border-color: var(--blue-mid); }
+.step-card.red   { background: var(--red-pale);   border-color: var(--red); }
+.step-card.amber { background: var(--amber-pale);  border-color: var(--amber-brd); }
+.step-card.green { background: var(--green-pale); border-color: var(--green-brd); }
+
+.step-title {
+  font-size: 12pt;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+.step-card.blue  .step-title { color: var(--blue); }
+.step-card.red   .step-title { color: var(--red); }
+.step-card.amber .step-title { color: var(--amber); }
+.step-card.green .step-title { color: var(--green); }
+
+.step-body {
+  font-size: 9.5pt;
+  color: var(--gray);
+  line-height: 1.5;
+}
+.step-body strong { color: var(--ink); font-weight: 600; }
+
+/* CHECKLIST inside card */
+.checklist {
+  margin-top: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 9pt;
+  line-height: 1.35;
+}
+.check-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10pt;
+  flex-shrink: 0;
+  margin-top: 0px;
+}
+.check-icon.req  { background: var(--red);   color: white; }
+.check-icon.opt  { background: var(--amber-brd); color: white; }
+.check-icon.ok   { background: var(--green); color: white; }
+
+/* EMAIL BOX */
+.email-box {
+  background: var(--blue);
+  color: white;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.email-icon {
+  font-size: 22pt;
+  flex-shrink: 0;
+}
+.email-addr {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10pt;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  word-break: break-all;
+}
+.email-note {
+  font-size: 7.5pt;
+  opacity: 0.75;
+  margin-top: 2px;
+  font-style: italic;
+}
+
+/* OGGETTO BOX */
+.oggetto-box {
+  background: white;
+  border: 1.5px dashed var(--rule);
+  border-radius: 5px;
+  padding: 7px 10px;
+  margin-top: 7px;
+  font-size: 8.5pt;
+}
+.oggetto-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 7pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gray);
+  margin-bottom: 3px;
+}
+.oggetto-val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9pt;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* ACTION BUTTON LOOK */
+.btn-look {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--blue);
+  color: white;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 9pt;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+  margin-top: 6px;
+}
+.btn-look.green { background: var(--green); }
+.btn-look.red   { background: var(--red); }
+
+/* ALERT NOTA */
+.nota {
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-size: 8pt;
+  line-height: 1.4;
+  margin-top: 7px;
+  border-left: 4px solid;
+}
+.nota.amber { background: var(--amber-pale); border-color: var(--amber-brd); color: var(--amber); }
+.nota.red   { background: var(--red-pale);   border-color: var(--red);       color: var(--red); }
+.nota.green { background: var(--green-pale); border-color: var(--green-brd); color: var(--green); }
+
+/* FINAL STEP - sample */
+.sample-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 7px;
+  padding: 8px 10px;
+  background: white;
+  border: 1.5px solid var(--green-brd);
+  border-radius: 6px;
+}
+.sample-icon { font-size: 18pt; }
+.sample-text { font-size: 9pt; line-height: 1.4; }
+
+/* FOOTER */
+.footer {
+  background: var(--ink);
+  color: rgba(255,255,255,0.55);
+  padding: 7px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 7pt;
+  font-family: 'IBM Plex Mono', monospace;
+  line-height: 1.6;
+}
+.footer-right { color: rgba(255,255,255,0.35); text-align: right; }
+
+/* PRINT */
+@media print {
+  body { background: white; }
+  .page { margin: 0; box-shadow: none; width: 100%; }
+  .no-print { display: none; }
+}
+.print-btn {
+  position: fixed; bottom: 16px; right: 16px;
+  background: var(--blue); color: white; border: none;
+  padding: 9px 18px; font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 9pt; font-weight: 600; border-radius: 5px;
+  cursor: pointer; box-shadow: 0 3px 14px rgba(30,45,107,0.4);
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-sc">SC Anatomia Patologica · ASST Fatebenefratelli-Sacco · Direttore f.f. Dott. Filippo Bianchi</div>
+    <div class="header-title">Come inviare i dati clinici<br><span>Biopsia Arteria Temporale — GCA</span></div>
+    <div class="header-sub">Istruzioni passo-passo per il medico richiedente · Da tenere vicino al computer</div>
+    <div class="header-rule"></div>
+  </div>
+
+  <!-- FLOW -->
+  <div class="flow-container">
+
+    <!-- STEP 1 -->
+    <div class="step">
+      <div class="step-num-col">
+        <div class="step-num" style="background:var(--blue-mid);">1</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-card blue">
+        <div class="step-title">Aprire il modulo dati clinici</div>
+        <div class="step-body">
+          Aprire il file <strong>richiesta_biopsia_temporale.html</strong> nel browser
+          (Chrome, Firefox o Edge — non Internet Explorer).
+          <div class="nota amber" style="margin-top:6px;">
+            <strong>Non trovate il file?</strong> Richiederlo alla SC Anatomia Patologica oppure scaricarlo dalla cartella condivisa di reparto.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step">
+      <div class="step-num-col">
+        <div class="step-num" style="background:var(--blue-mid);">2</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-card blue">
+        <div class="step-title">Compilare tutti i campi del modulo</div>
+        <div class="step-body">
+          Compilare almeno i campi obbligatori. Più dati si inseriscono, più accurato sarà il referto.
+          <div class="checklist">
+            <div class="check-item">
+              <div class="check-icon req">!</div>
+              <div><strong>Cognome, nome, data di nascita</strong> del paziente — verificare che corrispondano alla richiesta istologica</div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon req">!</div>
+              <div><strong>Steroidi:</strong> il paziente li ha già iniziati? Se sì → farmaco, dose e <em>numero esatto di giorni</em> prima del prelievo</div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon req">!</div>
+              <div><strong>Sintomi:</strong> cefalea, claudicatio mascellare, disturbi visivi (cecità, diplopia)</div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon req">!</div>
+              <div><strong>VES e PCR</strong> — inserire i valori numerici, non solo "elevata"</div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon opt">?</div>
+              <div><strong>Halo sign ecografico</strong> — se l'eco-Doppler è stato eseguito</div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon opt">?</div>
+              <div><strong>Sospetto clinico</strong> — alto / intermedio / altra diagnosi differenziale</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step">
+      <div class="step-num-col">
+        <div class="step-num" style="background:var(--amber-brd);">3</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-card amber">
+        <div class="step-title">Esportare il file</div>
+        <div class="step-body">
+          In fondo al modulo, cliccare il bottone:
+          <div class="btn-look" style="background:var(--blue); margin-bottom:6px;">⬇ Esporta dati clinici</div>
+          Il browser scaricherà automaticamente un file con nome:<br>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:9pt; font-weight:600;">dati_clinici_GCA_<span style="color:var(--amber);">COGNOME</span>.json</span>
+          <div class="nota amber">
+            <strong>Dove finisce il file?</strong> Nella cartella <strong>Download</strong> del computer. Controllare che il cognome nel nome del file sia quello corretto prima di procedere.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step">
+      <div class="step-num-col">
+        <div class="step-num" style="background:var(--red);">4</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-card red">
+        <div class="step-title">Inviare il file per e-mail all'Anatomia Patologica</div>
+        <div class="step-body">
+          Aprire il client di posta del reparto e inviare una nuova e-mail a:
+          <div class="email-box">
+            <div class="email-icon">✉</div>
+            <div>
+              <div class="email-addr">anatomia.patologica.fbf<br>@asst-fbf-sacco.it</div>
+              <div class="email-note">Posta interna ospedaliera — non serve VPN</div>
+            </div>
+          </div>
+          <div class="oggetto-box">
+            <div class="oggetto-label">Oggetto e-mail (copiare questo schema)</div>
+            <div class="oggetto-val">Biopsia temporale GCA · COGNOME NOME · GG/MM/AAAA</div>
+          </div>
+          <div class="nota red" style="margin-top:8px;">
+            <strong>Allegare il file JSON</strong> scaricato al punto 3.<br>
+            Non incollare i dati nel corpo dell'e-mail — il file viene importato direttamente nel sistema di refertazione.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step">
+      <div class="step-num-col">
+        <div class="step-num" style="background:var(--green);">5</div>
+        <div class="step-line last"></div>
+      </div>
+      <div class="step-card green">
+        <div class="step-title">Inviare il campione biologico</div>
+        <div class="step-body">
+          Inviare il campione all'Anatomia Patologica con la <strong>richiesta istologica cartacea standard</strong>,
+          compilata con gli stessi dati anagrafici del modulo.
+          <div class="sample-row">
+            <div class="sample-icon">🧪</div>
+            <div class="sample-text">
+              <strong>Campione in formalina 10%</strong> · Etichettare con nome, cognome, data di nascita, data prelievo<br>
+              <span style="color:var(--gray);">Destinazione: SC Anatomia Patologica · Osp. Fatebenefratelli · P.le Principessa Clotilde 3</span>
+            </div>
+          </div>
+          <div class="nota green" style="margin-top:8px;">
+            ✓ Tutto fatto. Il patologo riceverà il file con i dati clinici e potrà importarli direttamente nel sistema di refertazione.
+            Il referto sarà disponibile nei tempi abituali.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end flow-container -->
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div>
+      SC Anatomia Patologica · Ospedale Fatebenefratelli · Piazzale Principessa Clotilde 3 · 20121 Milano<br>
+      ☏ +39 02 6363 2569 · ✉ anatomia.patologica.fbf@asst-fbf-sacco.it · Direttore f.f.: Dott. Filippo Bianchi
+    </div>
+    <div class="footer-right">
+      Per problemi tecnici<br>contattare l'AP<br>v1.0 — 2026
+    </div>
+  </div>
+
+</div>
+
+<button class="print-btn no-print" onclick="window.print()">🖨 Stampa / PDF</button>
+
+</body>
+</html>

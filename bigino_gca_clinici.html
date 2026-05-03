@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCA — Guida rapida per il clinico</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&display=swap');
+
+:root {
+  --blue:      #1e2d6b;
+  --blue-mid:  #3d52a0;
+  --blue-light:#e8ecf8;
+  --blue-pale: #f4f6fc;
+  --red:       #b01e1e;
+  --red-light: #fdf0f0;
+  --amber:     #8a5200;
+  --amber-bg:  #fff8ed;
+  --amber-brd: #d4920a;
+  --green:     #1a5e35;
+  --green-bg:  #f0faf4;
+  --green-brd: #2e9e5b;
+  --gray:      #4a4a5a;
+  --gray-light:#f2f2f6;
+  --ink:       #12122a;
+  --rule:      #c8cce0;
+  --page:      #ffffff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: #d8dae8;
+  color: var(--ink);
+  font-size: 9.5pt;
+  line-height: 1.45;
+}
+
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 10mm auto;
+  background: var(--page);
+  box-shadow: 0 6px 32px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ─────────────────────────────── */
+.masthead {
+  background: var(--blue);
+  color: white;
+  padding: 11px 16px 10px;
+}
+.masthead-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.masthead-sc {
+  font-size: 7pt;
+  font-family: 'IBM Plex Mono', monospace;
+  opacity: 0.7;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.masthead-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22pt;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+.masthead-title span {
+  color: #7eb8ff;
+}
+.masthead-sub {
+  font-size: 8.5pt;
+  opacity: 0.8;
+  margin-top: 3px;
+  font-style: italic;
+}
+.masthead-badge {
+  background: var(--red);
+  border-radius: 4px;
+  padding: 6px 10px;
+  text-align: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.masthead-badge-label {
+  font-size: 6pt;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  opacity: 0.8;
+  display: block;
+}
+.masthead-badge-val {
+  font-size: 11pt;
+  font-weight: 700;
+  display: block;
+  margin-top: 1px;
+  line-height: 1.1;
+}
+.masthead-rule {
+  height: 3px;
+  background: linear-gradient(90deg, #7eb8ff 0%, #3d52a0 40%, transparent 100%);
+  margin-top: 8px;
+}
+
+/* ── BODY GRID ───────────────────────────── */
+.body {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+  flex: 1;
+}
+.col {
+  padding: 11px 12px;
+  border-right: 1px solid var(--rule);
+}
+.col:last-child { border-right: none; }
+
+/* ── SEZIONE ─────────────────────────────── */
+.sec {
+  margin-bottom: 11px;
+}
+.sec-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 6.5pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--blue-mid);
+  border-bottom: 2px solid var(--blue-mid);
+  padding-bottom: 3px;
+  margin-bottom: 7px;
+}
+.sec-title.red   { color: var(--red);   border-color: var(--red);   }
+.sec-title.amber { color: var(--amber); border-color: var(--amber-brd); }
+.sec-title.green { color: var(--green); border-color: var(--green-brd); }
+
+/* ── ITEM ROWS ───────────────────────────── */
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-size: 8.5pt;
+  line-height: 1.35;
+}
+.item-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--blue-mid);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.item-dot.red   { background: var(--red); }
+.item-dot.amber { background: var(--amber-brd); }
+.item-dot.green { background: var(--green-brd); }
+.item strong { font-weight: 600; }
+.item em { font-style: italic; color: var(--gray); font-size: 7.5pt; }
+
+/* ── ALERT BOX ───────────────────────────── */
+.alert {
+  border-radius: 4px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+  font-size: 8pt;
+  line-height: 1.4;
+  border-left: 4px solid;
+}
+.alert.red    { background: var(--red-light);  border-color: var(--red);       color: var(--red);   }
+.alert.amber  { background: var(--amber-bg);   border-color: var(--amber-brd); color: var(--amber); }
+.alert.green  { background: var(--green-bg);   border-color: var(--green-brd); color: var(--green); }
+.alert.blue   { background: var(--blue-light); border-color: var(--blue-mid);  color: var(--blue);  }
+.alert strong { font-weight: 700; }
+
+/* ── SCORE DISPLAY ───────────────────────── */
+.score-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.score-item {
+  background: var(--blue-pale);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 5px 7px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.score-label { font-size: 7.5pt; color: var(--gray); }
+.score-val   { font-family: 'IBM Plex Mono', monospace; font-size: 9pt; font-weight: 600; color: var(--blue); }
+.score-val.red { color: var(--red); }
+
+/* ── FLOWCHART ───────────────────────────── */
+.flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 8px;
+}
+.flow-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.flow-node {
+  background: var(--blue);
+  color: white;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 7.5pt;
+  font-weight: 600;
+  flex: 1;
+  line-height: 1.3;
+}
+.flow-node.red    { background: var(--red); }
+.flow-node.amber  { background: var(--amber-brd); color: white; }
+.flow-node.green  { background: var(--green); }
+.flow-node.gray   { background: var(--gray); }
+.flow-node.outline {
+  background: transparent;
+  color: var(--blue);
+  border: 1.5px solid var(--blue-mid);
+}
+.flow-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px 0;
+}
+.flow-arrow-line {
+  width: 2px;
+  height: 10px;
+  background: var(--rule);
+  margin: 0 auto;
+}
+.flow-arrow-label {
+  font-size: 6pt;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--gray);
+  white-space: nowrap;
+}
+
+/* ── FULL-WIDTH BAND ─────────────────────── */
+.band {
+  grid-column: 1 / -1;
+  background: var(--blue-light);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 7px 14px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.band-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.band-label {
+  font-size: 6.5pt;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--blue-mid);
+  font-weight: 600;
+}
+.band-val {
+  font-size: 9pt;
+  font-weight: 600;
+  color: var(--ink);
+}
+.band-note { font-size: 7pt; color: var(--gray); font-style: italic; }
+
+/* ── DD TABLE ────────────────────────────── */
+.dd-row {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 4px 8px;
+  margin-bottom: 4px;
+  font-size: 7.5pt;
+  align-items: start;
+}
+.dd-dx { font-weight: 600; color: var(--ink); }
+.dd-clue { color: var(--gray); font-style: italic; }
+
+/* ── FOOTER ──────────────────────────────── */
+.footer {
+  background: var(--ink);
+  color: rgba(255,255,255,0.6);
+  padding: 7px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.footer-left { font-size: 6.5pt; font-family: 'IBM Plex Mono', monospace; line-height: 1.6; }
+.footer-right {
+  background: var(--blue);
+  border-radius: 4px;
+  padding: 5px 10px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.footer-right-label { font-size: 6pt; font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; opacity: 0.7; }
+.footer-right-val { font-size: 8.5pt; font-weight: 700; color: white; display: block; margin-top: 1px; }
+
+/* ── PRINT ───────────────────────────────── */
+@media print {
+  body { background: white; }
+  .page { margin: 0; box-shadow: none; width: 100%; }
+  .no-print { display: none; }
+}
+
+.print-btn {
+  position: fixed; bottom: 16px; right: 16px;
+  background: var(--blue); color: white; border: none;
+  padding: 9px 18px; font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 9pt; font-weight: 600; border-radius: 5px;
+  cursor: pointer; box-shadow: 0 3px 14px rgba(30,45,107,0.4);
+}
+.print-btn:hover { background: #12205a; }
+
+/* ── INLINE PILL ─────────────────────────── */
+.pill {
+  display: inline-block;
+  background: var(--blue-mid);
+  color: white;
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 7pt;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+  vertical-align: middle;
+  margin-left: 3px;
+}
+.pill.red   { background: var(--red); }
+.pill.amber { background: var(--amber-brd); }
+.pill.green { background: var(--green); }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- MASTHEAD -->
+  <div class="masthead">
+    <div class="masthead-top">
+      <div>
+        <div class="masthead-sc">SC Anatomia Patologica · ASST Fatebenefratelli-Sacco · Milano — Direttore f.f. Dott. Filippo Bianchi</div>
+        <div class="masthead-title">Arterite a Cellule <span>Giganti</span></div>
+        <div class="masthead-sub">Guida rapida per il clinico — sospetto diagnostico, biopsia, refertazione</div>
+      </div>
+      <div style="display:flex; gap:6px; align-items:flex-start; margin-top:4px;">
+        <div class="masthead-badge">
+          <span class="masthead-badge-label">Età min.</span>
+          <span class="masthead-badge-val">≥ 50 aa</span>
+        </div>
+        <div class="masthead-badge" style="background:#2a2a7a;">
+          <span class="masthead-badge-label">Criteri</span>
+          <span class="masthead-badge-val">ACR/EULAR<br><span style="font-size:8pt">2022</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="masthead-rule"></div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body">
+
+    <!-- ══ COLONNA 1: SOSPETTO & CLINICA ══ -->
+    <div class="col">
+
+      <div class="sec">
+        <div class="sec-title red">🔴 Quando sospettare GCA</div>
+        <div class="alert red">
+          <strong>Età ≥ 50 anni</strong> — requisito d'ingresso per la classificazione ACR/EULAR 2022; sotto i 50 anni la diagnosi di GCA è eccezionale e impone DD estesa.
+        </div>
+        <div class="item">
+          <div class="item-dot red"></div>
+          <div><strong>Cefalea temporale nuova</strong> o diversa dall'abituale — insorgenza recente <em>(+2 ACR/EULAR 2022)</em></div>
+        </div>
+        <div class="item">
+          <div class="item-dot red"></div>
+          <div><strong>Claudicatio mascellare</strong> — dolore alla masticazione prolungata <em>(uno dei segni più specifici)</em></div>
+        </div>
+        <div class="item">
+          <div class="item-dot red"></div>
+          <div><strong>Disturbi visivi</strong> — amaurosi fugace, diplopia, perdita visus <em>→ emergenza oftalmologica</em></div>
+        </div>
+        <div class="item">
+          <div class="item-dot"></div>
+          <div><strong>Dolorabilità arterie temporali</strong> alla palpazione, scalp tenderness</div>
+        </div>
+        <div class="item">
+          <div class="item-dot"></div>
+          <div><strong>Polimialgia reumatica</strong> associata — coesiste in ~50% dei casi</div>
+        </div>
+        <div class="item">
+          <div class="item-dot"></div>
+          <div>Sintomi costituzionali: febbre, calo ponderale, astenia marcata</div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-title">Laboratorio — soglie rilevanti</div>
+        <div class="score-grid">
+          <div class="score-item">
+            <span class="score-label">VES</span>
+            <span class="score-val red">≥ 50 mm/h</span>
+          </div>
+          <div class="score-item">
+            <span class="score-label">PCR</span>
+            <span class="score-val red">elevata</span>
+          </div>
+          <div class="score-item">
+            <span class="score-label">VES alta</span>
+            <span class="score-val">≥ 70 più specifico</span>
+          </div>
+          <div class="score-item">
+            <span class="score-label">Piastrine</span>
+            <span class="score-val">trombocitosi reattiva</span>
+          </div>
+        </div>
+        <div class="item">
+          <div class="item-dot amber"></div>
+          <div>GCA con VES normale: raro ma documentato — non escludere se quadro clinico tipico</div>
+        </div>
+        <div class="item">
+          <div class="item-dot"></div>
+          <div>ANCA (MPO/PR3): richiedere se si sospetta vasculite ANCA-associata come DD</div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-title green">Imaging pre-biopsia</div>
+        <div class="item">
+          <div class="item-dot green"></div>
+          <div><strong>Eco-Doppler arterie temporali e ascellari</strong> — imaging di prima linea secondo EULAR 2023; halo sign non comprimibile. Sensibilità pooled 88%, specificità 96% in mani esperte</div>
+        </div>
+        <div class="item">
+          <div class="item-dot green"></div>
+          <div><strong>PET-TC / RM grandi vasi</strong> — se sospetto GCA a grandi vasi o eco negativa con clinica forte</div>
+        </div>
+        <div class="alert green" style="margin-top:6px; font-size:7.5pt;">
+          In setting esperto, imaging compatibile + quadro clinico tipico può sostenere la diagnosi clinica senza necessaria biopsia; discutere con reumatologo/vasculitologo. Dejaco C et al., Ann Rheum Dis 2023.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══ COLONNA 2: BIOPSIA & STEROIDI ══ -->
+    <div class="col">
+
+      <div class="sec">
+        <div class="sec-title amber">⚠ Il dilemma degli steroidi</div>
+        <div class="alert amber">
+          <strong>Non ritardare la terapia per aspettare la biopsia.</strong> Iniziare i corticosteroidi appena il sospetto è fondato — soprattutto in presenza di disturbi visivi.
+        </div>
+        <div class="alert blue" style="margin-top:0;">
+          <strong>Procedere comunque alla biopsia:</strong> la sensibilità si riduce ma non azzera nei primi 7–14 giorni. Un reperto positivo sotto steroidi ha pieno valore diagnostico. Un reperto negativo non esclude.
+        </div>
+        <div class="item" style="margin-top:4px;">
+          <div class="item-dot amber"></div>
+          <div><strong>0–3 gg di steroidi:</strong> sensibilità elevata — eseguire la biopsia al più presto</div>
+        </div>
+        <div class="item">
+          <div class="item-dot amber"></div>
+          <div><strong>3–14 gg:</strong> sensibilità ridotta ma biopsia ancora utile — eseguire</div>
+        </div>
+        <div class="item">
+          <div class="item-dot red"></div>
+          <div><strong>&gt;14 gg:</strong> sensibilità sostanzialmente ridotta — eseguire comunque, ma interpretare con cautela i reperti negativi</div>
+        </div>
+        <div class="alert red" style="margin-top:6px; font-size:7.5pt;">
+          Comunicare sempre al patologo: farmaco, dose e giorni di terapia prima del prelievo. Senza questi dati il referto perde significato interpretativo.
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-title">Flusso decisionale</div>
+        <div class="flow">
+          <div class="flow-step">
+            <div class="flow-node red">Paziente ≥ 50 aa con sospetto GCA</div>
+          </div>
+          <div class="flow-arrow">
+            <div class="flow-arrow-line"></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-node outline">Disturbi visivi? → <strong>Emergenza</strong><br>Steroidi EV + eco-Doppler urgente</div>
+          </div>
+          <div class="flow-arrow">
+            <div class="flow-arrow-line"></div>
+            <div class="flow-arrow-label">no emergenza oftalmica</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-node">Eco-Doppler arterie temporali e ascellari</div>
+          </div>
+          <div class="flow-arrow">
+            <div class="flow-arrow-line"></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-node amber">Biopsia arteria temporale<br><span style="font-weight:400; font-size:7pt">≥ 15 mm, sezioni seriali, VVG</span></div>
+          </div>
+          <div class="flow-arrow">
+            <div class="flow-arrow-line"></div>
+            <div class="flow-arrow-label">compilare modulo dati clinici</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-node green">Inviare campione + modulo dati<br><span style="font-weight:400; font-size:7pt">all'Anatomia Patologica</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-title">Cosa serve al patologo</div>
+        <div class="item">
+          <div class="item-dot"></div>
+          <div><strong>Età</strong> del paziente</div>
+        </div>
+        <div class="item">
+          <div class="item-dot red"></div>
+          <div><strong>Disturbi visivi</strong> — tipo, durata, mono/bilaterale</div>
+        </div>
+        <div class="item">
+          <div class="item-dot red"></div>
+          <div><strong>Steroidi:</strong> farmaco, dose, giorni prima del prelievo</div>
+        </div>
+        <div class="item">
+          <div class="item-dot"></div>
+          <div>VES e PCR recenti</div>
+        </div>
+        <div class="item">
+          <div class="item-dot"></div>
+          <div>Halo sign ecografico: sì / no / non eseguito</div>
+        </div>
+        <div class="item">
+          <div class="item-dot amber"></div>
+          <div>Diagnosi differenziali considerate</div>
+        </div>
+        <div class="alert blue" style="margin-top:6px; font-size:7.5pt;">
+          Usare il <strong>modulo dati clinici GCA</strong> (disponibile in reparto) — esportabile digitalmente per importazione diretta nel sistema di refertazione dell'AP.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══ COLONNA 3: DD & LIMITI ══ -->
+    <div class="col">
+
+      <div class="sec">
+        <div class="sec-title amber">Diagnosi differenziali principali</div>
+        <div class="dd-row">
+          <div class="dd-dx">Arterite di Takayasu</div>
+          <div class="dd-clue">Età &lt;50 aa, grandi vasi, senza cefalea/claudicatio mascellare</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Vasculite ANCA-associata (GPA, MPA)</div>
+          <div class="dd-clue">ANCA MPO/PR3 +, sinusite, coinvolgimento renale, neutrofilica</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Vasculite IgG4-correlata</div>
+          <div class="dd-clue">plasmacellule, fibrosi storiforme, IgG4/IgG ratio su biopsia; correlare con sierologia e quadro sistemico</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Aterosclerosi accelerata</div>
+          <div class="dd-clue">frammentazione elastica/ispessimento intimale senza infiltrato granulomatoso attivo</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">PMR isolata</div>
+          <div class="dd-clue">No segni vascolari, biopsia temporale negativa</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Linfoma intravascolare</div>
+          <div class="dd-clue">Raro, cellule atipiche nei lumi vasali — red flag bioptico</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Arterite infettiva</div>
+          <div class="dd-clue">Granulomi con necrosi — TBC, micosi — red flag bioptico</div>
+        </div>
+        <div class="alert amber" style="margin-top:6px; font-size:7.5pt;">
+          In paziente &lt;50 anni: la morfologia può essere analoga ma la classificazione come GCA è eccezionale. Obbligatoria DD estesa.
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-title">Limiti della biopsia temporale</div>
+        <div class="item">
+          <div class="item-dot amber"></div>
+          <div>Sensibilità ~77% — una biopsia negativa <strong>non esclude</strong> GCA</div>
+        </div>
+        <div class="item">
+          <div class="item-dot amber"></div>
+          <div><strong>Skip lesions</strong> nel 10–15% dei casi: focolai saltati lungo l'arteria</div>
+        </div>
+        <div class="item">
+          <div class="item-dot"></div>
+          <div>Variante senza cellule giganti: 20–30% delle GCA istologicamente confermate</div>
+        </div>
+        <div class="item">
+          <div class="item-dot"></div>
+          <div>Campione &lt;10 mm ha scarso valore esclusivo se negativo</div>
+        </div>
+        <div class="item">
+          <div class="item-dot red"></div>
+          <div>Biopsia negativa con clinica forte → <strong>biopsia controlaterale</strong> o imaging grandi vasi</div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-title green">Criteri ACR/EULAR 2022 — voci principali</div>
+        <div style="font-size:7pt; color:var(--gray); margin-bottom:6px; font-style:italic;">Solo per classificazione in studi/registri — non per uso diagnostico routinario · Requisito: età ≥50 aa</div>
+        <div class="dd-row" style="font-size:8pt; border-bottom:1px solid var(--rule); padding-bottom:3px; margin-bottom:4px;">
+          <div class="dd-dx">Criterio</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:7.5pt; color:var(--blue); font-weight:600;">Punti</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Biopsia temporale positiva o halo sign temporale</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:8pt; color:var(--red); font-weight:600;">+5</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Età ≥ 70 aa</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:8pt; color:var(--blue); font-weight:600;">+3</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">VES ≥ 50 mm/h o PCR ≥ 10 mg/L</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:8pt; color:var(--blue); font-weight:600;">+3</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Perdita visiva improvvisa</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:8pt; color:var(--red); font-weight:600;">+3</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Rigidità mattutina cingolo scapolare/collo</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:8pt; color:var(--blue); font-weight:600;">+2</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Claudicatio mandibolare o linguale</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:8pt; color:var(--blue); font-weight:600;">+2</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Cefalea temporale nuova</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:8pt; color:var(--blue); font-weight:600;">+2</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Scalp tenderness</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:8pt; color:var(--blue); font-weight:600;">+2</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Anomalia art. temporale all'esame</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:8pt; color:var(--blue); font-weight:600;">+2</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">Interessamento bilat. art. ascellari</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:8pt; color:var(--blue); font-weight:600;">+2</div>
+        </div>
+        <div class="dd-row">
+          <div class="dd-dx">FDG-PET lungo l'aorta</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:8pt; color:var(--blue); font-weight:600;">+2</div>
+        </div>
+        <div class="alert blue" style="margin-top:5px; font-size:7.5pt;">
+          Soglia classificazione: <strong>≥ 6 punti</strong> (sens. 87%, spec. 95%)<br>
+          Ponte C et al., Arthritis Rheumatol 2022 · DOI 10.1002/art.42325
+        </div>
+
+    </div>
+
+  </div><!-- end body grid -->
+
+  <!-- BAND INFERIORE -->
+  <div style="background:var(--blue); color:white; padding:8px 14px; display:grid; grid-template-columns: 1fr auto; align-items:center; gap:16px; border-top: 3px solid var(--red);">
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+      <div>
+        <div style="font-size:6pt; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:0.8px; opacity:0.6; margin-bottom:2px;">Se biopsia negativa con clinica forte</div>
+        <div style="font-size:8pt; font-weight:600; line-height:1.3;">Eco-Doppler bilaterale → biopsia controlaterale → PET-TC grandi vasi</div>
+      </div>
+      <div>
+        <div style="font-size:6pt; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:0.8px; opacity:0.6; margin-bottom:2px;">Terapia di prima linea</div>
+        <div style="font-size:8pt; font-weight:600; line-height:1.3;">Prednisone 40–60 mg/die · Tocilizumab nei casi refrattari o a rischio ricadute <span style="font-weight:400; font-size:7pt; opacity:0.75">— indicazioni orientative; gestione a cura di Reumatologia/Oculistica/Medicina interna secondo protocolli aziendali</span></div>
+      </div>
+      <div>
+        <div style="font-size:6pt; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:0.8px; opacity:0.6; margin-bottom:2px;">Emergenza oftalmica</div>
+        <div style="font-size:8pt; font-weight:600; line-height:1.3;">Metilprednisolone EV 500–1000 mg × 3 gg → consulenza oftalmologica urgente <span style="font-weight:400; font-size:7pt; opacity:0.75">— gestione a cura di Oculistica/Reumatologia</span></div>
+      </div>
+    </div>
+    <div style="text-align:right; flex-shrink:0;">
+      <div style="font-size:6pt; font-family:'IBM Plex Mono',monospace; opacity:0.5; text-transform:uppercase;">Riferimento</div>
+      <div style="font-size:7.5pt; font-weight:600; margin-top:1px;">Hellmich B et al.<br>Ann Rheum Dis 2020</div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-left">
+      SC Anatomia Patologica · Ospedale Fatebenefratelli · Piazzale Principessa Clotilde 3 · 20121 Milano<br>
+      Direttore f.f.: Dott. Filippo Bianchi · ☏ +39 02 6363 2569 · ✉ filippo.bianchi@asst-fbf-sacco.it<br>
+      Documento a uso interno · Per la refertazione usare il modulo dati clinici GCA allegato · v1.0 — 2026
+    </div>
+    <div class="footer-right">
+      <span class="footer-right-label">Modulo dati clinici</span>
+      <span class="footer-right-val">allegato separato</span>
+    </div>
+  </div>
+
+</div><!-- end page -->
+
+<button class="print-btn no-print" onclick="window.print()">🖨 Stampa / PDF</button>
+
+</body>
+</html>

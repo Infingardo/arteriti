@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Richiesta Biopsia Arteria Temporale — Dati Clinici</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --ink: #1a1a2e;
+    --ink-light: #4a4a6a;
+    --border: #b0b0c8;
+    --border-strong: #6060a0;
+    --accent: #3d3d8f;
+    --accent-light: #ededf8;
+    --warn: #7a3a00;
+    --warn-bg: #fff8f0;
+    --warn-border: #d48a40;
+    --page: #ffffff;
+    --rule: #d8d8e8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: #e8e8f0;
+    color: var(--ink);
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 12mm auto;
+    background: var(--page);
+    padding: 14mm 16mm 14mm 16mm;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  }
+
+  /* HEADER */
+  .header-istituzione {
+    text-align: center;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+  }
+  .header-asst {
+    font-size: 7.5pt;
+    font-weight: 600;
+    color: var(--ink-light);
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .header-sc {
+    font-size: 14pt;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+    margin-top: 3px;
+  }
+  .header-ospedale {
+    font-size: 9.5pt;
+    font-weight: 500;
+    color: var(--ink);
+    margin-top: 2px;
+  }
+  .header-direttore {
+    font-size: 8pt;
+    color: var(--ink-light);
+    margin-top: 3px;
+    font-style: italic;
+  }
+  .header-rule {
+    border: none;
+    border-top: 3px solid var(--accent);
+    margin: 10px 0 8px 0;
+  }
+  .header-doc {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .header-title {
+    font-size: 13pt;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.3px;
+  }
+  .header-sub {
+    font-size: 7.5pt;
+    color: var(--ink-light);
+    font-family: 'IBM Plex Mono', monospace;
+    font-style: italic;
+  }
+
+  /* AVVISO CLINICO */
+  .avviso {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-left: 4px solid var(--warn-border);
+    border-radius: 3px;
+    padding: 7px 10px;
+    margin-bottom: 12px;
+    font-size: 8.5pt;
+    color: var(--warn);
+    line-height: 1.4;
+  }
+  .avviso strong { font-weight: 600; }
+
+  /* SEZIONI */
+  .section {
+    margin-bottom: 11px;
+  }
+  .section-title {
+    font-size: 8pt;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-family: 'IBM Plex Mono', monospace;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 3px;
+    margin-bottom: 8px;
+  }
+
+  /* GRIGLIA CAMPI */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px 10px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 8px; }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .field-label {
+    font-size: 7.5pt;
+    font-weight: 500;
+    color: var(--ink-light);
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.2px;
+  }
+  .field-note {
+    font-size: 6.5pt;
+    color: #8888aa;
+    font-style: italic;
+    margin-top: 1px;
+  }
+  .field-line {
+    border: none;
+    border-bottom: 1px solid var(--border-strong);
+    height: 20px;
+    background: transparent;
+    width: 100%;
+  }
+  .field-line-long {
+    border: none;
+    border-bottom: 1px solid var(--border-strong);
+    height: 20px;
+    background: transparent;
+    width: 100%;
+    grid-column: 1 / -1;
+  }
+
+  /* CHECKBOX ROWS */
+  .cb-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 2px;
+  }
+  .cb-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    break-inside: avoid;
+  }
+  .cb-row:nth-child(odd) { background: var(--accent-light); }
+  .cb-box {
+    width: 13px;
+    height: 13px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 2px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    background: white;
+  }
+  .cb-label {
+    font-size: 9pt;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+  .cb-note {
+    font-size: 7pt;
+    color: var(--ink-light);
+    font-style: italic;
+    display: block;
+    margin-top: 1px;
+  }
+
+  /* SEZIONE STEROIDI */
+  .steroids-block {
+    border: 1.5px solid var(--warn-border);
+    border-radius: 4px;
+    padding: 7px 9px;
+    background: var(--warn-bg);
+  }
+  .steroids-title {
+    font-size: 7.5pt;
+    font-weight: 600;
+    color: var(--warn);
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .steroids-grid { display: grid; grid-template-columns: auto 1fr 1fr 1fr; gap: 6px 12px; align-items: center; }
+  .steroids-note {
+    font-size: 7pt;
+    color: var(--warn);
+    margin-top: 5px;
+    font-style: italic;
+  }
+
+  /* FIRMA */
+  .firma-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  /* FOOTER */
+  .footer {
+    margin-top: 10px;
+    padding-top: 7px;
+    border-top: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 10px;
+  }
+  .footer-note {
+    font-size: 7pt;
+    color: #9999bb;
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 1.5;
+  }
+  .footer-path {
+    font-size: 7pt;
+    color: var(--ink-light);
+    text-align: right;
+    font-family: 'IBM Plex Mono', monospace;
+    border: 1px solid var(--rule);
+    padding: 4px 7px;
+    border-radius: 3px;
+  }
+  .footer-path strong { color: var(--accent); }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px dashed var(--rule); margin: 8px 0; }
+
+
+  /* INPUT INTERATTIVI */
+  input[type="text"], input[type="number"], input[type="date"] {
+    border: none;
+    border-bottom: 1.5px solid var(--border-strong);
+    border-radius: 0;
+    height: 22px;
+    background: transparent;
+    width: 100%;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9.5pt;
+    color: var(--ink);
+    padding: 0 2px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus {
+    border-bottom-color: var(--accent);
+    background: var(--accent-light);
+  }
+  input[type="checkbox"] {
+    width: 13px;
+    height: 13px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 2px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  textarea.field-textarea {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    width: 100%;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9pt;
+    color: var(--ink);
+    padding: 4px 6px;
+    resize: vertical;
+    min-height: 36px;
+    outline: none;
+    background: transparent;
+  }
+  textarea.field-textarea:focus { border-color: var(--accent); background: var(--accent-light); }
+
+  /* ESPORTA BUTTON */
+  .export-bar {
+    background: var(--accent-light);
+    border: 1.5px solid var(--accent);
+    border-radius: 5px;
+    padding: 9px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .export-bar-text {
+    font-size: 8.5pt;
+    color: var(--accent);
+    line-height: 1.4;
+  }
+  .export-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 7px 16px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9pt;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .export-btn:hover { background: #2a2a7a; }
+  @media print {
+    .export-bar { display: none; }
+    input, textarea { border-color: #ccc !important; background: transparent !important; }
+  }
+
+  /* PRINT */
+  @media print {
+    body { background: white; font-size: 10pt; }
+    .page { margin: 0; box-shadow: none; padding: 12mm 14mm; width: 100%; min-height: auto; }
+    .no-print { display: none; }
+  }
+
+  /* PRINT BUTTON */
+  .print-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 10pt;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(61,61,143,0.35);
+  }
+  .print-btn:hover { background: #2a2a7a; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- INTESTAZIONE ISTITUZIONALE -->
+  <div class="header-istituzione">
+    <div class="header-asst">ASST Fatebenefratelli-Sacco · Milano</div>
+    <div class="header-sc">Struttura Complessa di Anatomia Patologica</div>
+    <div class="header-ospedale">Ospedale Fatebenefratelli · Melloni · Territorio</div>
+    <div class="header-direttore">Direttore f.f.: Dott. Filippo Bianchi</div>
+  </div>
+
+  <hr class="header-rule">
+
+  <!-- TITOLO DOCUMENTO -->
+  <div class="header-doc">
+    <div class="header-title">Richiesta Biopsia Arteria Temporale — Dati Clinici</div>
+    <div class="header-sub">Da compilare prima dell'invio del campione</div>
+  </div>
+
+  <!-- AVVISO -->
+  <div class="avviso">
+    <strong>Perché questo modulo è importante.</strong> La biopsia dell'arteria temporale ha sensibilità limitata (~77%) e dipende fortemente dal contesto clinico. Senza i dati richiesti, il referto anatomopatologico non può indicare la concordanza morfologico-clinica né suggerire indagini integrative appropriate. La compilazione richiede circa 3 minuti.
+  </div>
+
+  <!-- 1. DATI PAZIENTE -->
+  <div class="section">
+    <div class="section-title">1 — Dati del paziente</div>
+    <div class="grid-4">
+      <div class="field">
+        <span class="field-label">Cognome e nome</span>
+        <input type="text" id="cognome">
+      </div>
+      <div class="field">
+        <span class="field-label">Data di nascita</span>
+        <input type="text" id="ddn">
+      </div>
+      <div class="field">
+        <span class="field-label">Sesso</span>
+        <input type="text" id="sesso" placeholder="M / F">
+        <span class="field-note">M / F</span>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:6px">
+      <div class="field">
+        <span class="field-label">Reparto / Ambulatorio</span>
+        <input type="text" id="reparto">
+      </div>
+      <div class="field">
+        <span class="field-label">Medico richiedente</span>
+        <input type="text" id="medico">
+      </div>
+      <div class="field">
+        <span class="field-label">Data prelievo</span>
+        <input type="text" id="data-prelievo" type="date">
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. SINTOMI -->
+  <div class="section">
+    <div class="section-title">2 — Sintomi (spuntare tutto ciò che è presente)</div>
+    <div class="cb-group">
+      <div class="cb-row">
+        <input type="checkbox" id="cb-cefalea">
+        <div>
+          <span class="cb-label">Cefalea di nuova insorgenza o diversa dalla cefalea abituale</span>
+          <span class="cb-note">Tipicamente temporale, pulsante, ingravescente — diversa per sede o qualità rispetto alla cefalea precedente</span>
+        </div>
+      </div>
+      <div class="cb-row">
+        <input type="checkbox" id="cb-claudicatio">
+        <div>
+          <span class="cb-label">Claudicatio mascellare</span>
+          <span class="cb-note">Dolore/affaticamento alla masticazione prolungata — uno dei segni più specifici per GCA</span>
+        </div>
+      </div>
+      <div class="cb-row">
+        <input type="checkbox" id="cb-visus">
+        <div>
+          <span class="cb-label">Disturbi visivi: amaurosi fugace / perdita visus / diplopia</span>
+          <span class="cb-note">Qualsiasi episodio di visione offuscata, cecità monoculare transitoria o permanente, visione doppia — specificare:</span>
+          <input type="text">
+        </div>
+      </div>
+      <div class="cb-row">
+        <input type="checkbox" id="cb-scalp">
+        <div>
+          <span class="cb-label">Dolore/dolorabilità al cuoio capelluto (scalp tenderness)</span>
+          <span class="cb-note">Dolore alla pettinatura, al contatto con il cuscino, dolorabilità delle arterie temporali alla palpazione</span>
+        </div>
+      </div>
+      <div class="cb-row">
+        <input type="checkbox" id="cb-pmr">
+        <div>
+          <span class="cb-label">Polimialgia reumatica (PMR) associata</span>
+          <span class="cb-note">Dolore e rigidità alle cinture scapolari e/o pelviche, specie mattutina — coesiste in ~50% dei casi di GCA</span>
+        </div>
+      </div>
+      <div class="cb-row">
+        <input type="checkbox" id="cb-costituzionali">
+        <div>
+          <span class="cb-label">Sintomi costituzionali: febbre, calo ponderale, astenia marcata</span>
+          <span class="cb-note">Presenti in circa 1/3 dei pazienti con GCA</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:7px;">
+      <div class="field">
+        <span class="field-label">Durata complessiva dei sintomi prima della biopsia</span>
+        <input type="text" id="durata-sintomi">
+        <span class="field-note" style="display:inline; margin-left:6px">settimane / mesi (indicare)</span>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- 3. LABORATORIO -->
+  <div class="section">
+    <div class="section-title">3 — Dati di laboratorio (al momento della richiesta o recenti)</div>
+    <div class="grid-4">
+      <div class="field">
+        <span class="field-label">VES (mm/h)</span>
+        <input type="number" id="ves" placeholder="es. 85">
+        <span class="field-note">Soglia GCA: ≥50 (≥70 più specifico)</span>
+      </div>
+      <div class="field">
+        <span class="field-label">PCR (mg/L)</span>
+        <input type="number" id="crp" placeholder="es. 45">
+        <span class="field-note">Elevata in &gt;90% dei casi attivi</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Piastrine (×10³/µL)</span>
+        <input type="number" id="plt">
+        <span class="field-note">Trombocitosi reattiva frequente</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Emocromo — anemia</span>
+        <input type="text" id="anemia" placeholder="Sì / No / Hb ___">
+        <span class="field-note">Sì / No / Hb ___</span>
+      </div>
+    </div>
+    <div style="margin-top:6px; display:flex; align-items:center; gap:12px;">
+      <span class="field-label" style="flex-shrink:0">ANCA (MPO/PR3):</span>
+      <input type="checkbox" id="cb-halo"><span style="font-size:8.5pt; margin-right:12px">Non eseguiti</span>
+      <input type="checkbox" id="cb-eco-neg"><span style="font-size:8.5pt; margin-right:12px">Negativi</span>
+      <input type="checkbox" id="cb-pet"><span style="font-size:8.5pt; margin-right:6px">Positivi →</span>
+      <input type="text">
+    </div>
+    <span class="field-note" style="margin-top:2px; display:block">Gli ANCA sono utili se si sospetta vasculite ANCA-associata come diagnosi alternativa o concomitante</span>
+  </div>
+
+  <!-- 4. IMAGING -->
+  <div class="section">
+    <div class="section-title">4 — Imaging vascolare pre-biopsia</div>
+    <div class="cb-group">
+      <div class="cb-row">
+        <input type="checkbox" id="cb-no-steroidi">
+        <div>
+          <span class="cb-label">Eco-Doppler arterie temporali: <strong>halo sign positivo</strong></span>
+          <span class="cb-note">Alone ipoecogeno periluminale non comprimibile — segno ecografico più specifico per GCA attiva (&gt;80% specificità)</span>
+        </div>
+      </div>
+      <div class="cb-row">
+        <input type="checkbox" id="cb-si-steroidi">
+        <div>
+          <span class="cb-label">Eco-Doppler: negativo / non eseguito</span>
+        </div>
+      </div>
+      <div class="cb-row">
+        <input type="checkbox" id="cb-anca-no">
+        <div>
+          <span class="cb-label">PET-TC o RM grandi vasi: infiammazione parietale documentata</span>
+          <span class="cb-note">Sede: <input type="text"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- 5. STEROIDI — sezione critica -->
+  <div class="section">
+    <div class="steroids-block">
+      <div class="steroids-title">⚠ 5 — Terapia corticosteroidea (informazione critica per la refertazione)</div>
+      <div class="cb-group" style="margin-bottom:8px;">
+        <div class="cb-row" style="background:transparent; padding:2px 0;">
+          <input type="checkbox" id="cb-anca-neg">
+          <span class="cb-label">Il paziente <strong>NON</strong> ha iniziato terapia corticosteroidea</span>
+        </div>
+        <div class="cb-row" style="background:transparent; padding:2px 0;">
+          <input type="checkbox" id="cb-anca-pos">
+          <span class="cb-label">Il paziente ha già iniziato corticosteroidi</span>
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="field">
+          <span class="field-label">Farmaco e dose</span>
+          <input type="text" id="steroide-farmaco" placeholder="es. Prednisone 50 mg/die">
+          <span class="field-note">es. Prednisone 50 mg/die</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Data di inizio</span>
+          <input type="text" id="steroide-data">
+        </div>
+        <div class="field">
+          <span class="field-label">Giorni prima della biopsia</span>
+          <input type="number" id="steroide-giorni" min="0">
+          <span class="field-note">N. giorni tra inizio terapia e prelievo</span>
+        </div>
+      </div>
+      <div class="steroids-note">
+        La sensibilità bioptica si riduce progressivamente con la terapia steroidea. Un reperto istologico positivo conserva pieno valore diagnostico anche sotto steroidi; un reperto negativo o aspecifico in paziente trattato non esclude la diagnosi di GCA. Questa informazione è indispensabile per l'interpretazione del referto.
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. DIAGNOSI CLINICA E SOSPETTO -->
+  <div class="section">
+    <div class="section-title">6 — Sospetto clinico e diagnosi differenziali considerate</div>
+    <div class="cb-group">
+      <div class="cb-row">
+        <input type="checkbox" id="cb-sospetto-alto">
+        <div>
+          <span class="cb-label">GCA (arterite temporale di Horton) — sospetto <strong>alto</strong></span>
+          <span class="cb-note">Quadro clinico-laboratoristico fortemente suggestivo; biopsia per conferma</span>
+        </div>
+      </div>
+      <div class="cb-row">
+        <input type="checkbox" id="cb-sospetto-medio">
+        <div>
+          <span class="cb-label">GCA — sospetto <strong>intermedio</strong></span>
+          <span class="cb-note">Alcuni elementi compatibili; biopsia per discriminare</span>
+        </div>
+      </div>
+      <div class="cb-row">
+        <input type="checkbox" id="cb-dd-altra">
+        <div>
+          <span class="cb-label">Altra vasculite / diagnosi alternativa da escludere</span>
+          <span class="cb-note">Specificare il sospetto alternativo: <input type="text"></span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:7px;">
+      <div class="field">
+        <span class="field-label">Note cliniche aggiuntive (storia rilevante, comorbilità, farmaci immunosoppressori pregressi)</span>
+        <textarea class="field-textarea" rows="3" id="note-aggiuntive"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIRMA -->
+  <div class="section">
+    <div class="section-title">Compilato da</div>
+    <div class="firma-row">
+      <div class="field">
+        <span class="field-label">Nome e cognome del medico</span>
+        <input type="text" id="firma-nome">
+      </div>
+      <div class="field">
+        <span class="field-label">Qualifica / Specialità</span>
+        <input type="text" id="firma-qualifica">
+      </div>
+      <div class="field">
+        <span class="field-label">Firma</span>
+        <input type="text" id="firma">
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-note">
+      Modulo per uso interno — SC Anatomia Patologica · ASST Fatebenefratelli-Sacco · Milano<br>
+      Allegare alla richiesta di esame istologico e al campione biologico.<br>
+      In assenza di questo modulo compilato, la refertazione sarà limitata ai soli dati morfologici.
+    </div>
+    <div class="footer-path">
+      <strong>Destinazione campione:</strong><br>
+      SC Anatomia Patologica<br>
+      Ospedale Fatebenefratelli<br>
+      P.le Principessa Clotilde 3 · Milano
+    </div>
+  </div>
+
+</div>
+
+  <!-- BARRA ESPORTA -->
+  <div class="export-bar no-print">
+    <div class="export-bar-text">
+      <strong>Compilazione completata?</strong><br>
+      Esporta i dati clinici in un file JSON da consegnare o inviare all'Anatomia Patologica.
+    </div>
+    <button class="export-btn" onclick="esportaDati()">⬇ Esporta dati clinici</button>
+  </div>
+
+<button class="print-btn no-print" onclick="window.print()">🖨 Stampa / PDF</button>
+
+<script>
+function esportaDati() {
+  const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const cb = id => { const el = document.getElementById(id); return el ? el.checked : false; };
+
+  const cognome = g('cognome');
+  const data = {
+    _versione: 'GCA-form-v1.0',
+    _esportato: new Date().toISOString(),
+    paziente: {
+      cognome:       cognome,
+      ddn:           g('ddn'),
+      sesso:         g('sesso'),
+      reparto:       g('reparto'),
+      medico:        g('medico'),
+      dataPrelievo:  g('data-prelievo'),
+    },
+    sintomi: {
+      cefalea:        cb('cb-cefalea'),
+      claudicatio:    cb('cb-claudicatio'),
+      visus:          cb('cb-visus'),
+      scalp:          cb('cb-scalp'),
+      pmr:            cb('cb-pmr'),
+      costituzionali: cb('cb-costituzionali'),
+      durata:         g('durata-sintomi'),
+      dettaglioVisus: g('dettaglio-visus') || '',
+    },
+    laboratorio: {
+      ves:     g('ves'),
+      crp:     g('crp'),
+      plt:     g('plt'),
+      anemia:  g('anemia'),
+      ancaNonEseguiti: cb('cb-anca-no'),
+      ancaNegativi:    cb('cb-anca-neg'),
+      ancaPositivi:    cb('cb-anca-pos'),
+    },
+    imaging: {
+      haloSign:   cb('cb-halo'),
+      ecoNeg:     cb('cb-eco-neg'),
+      pet:        cb('cb-pet'),
+    },
+    steroidi: {
+      noSteroidi:  cb('cb-no-steroidi'),
+      siSteroidi:  cb('cb-si-steroidi'),
+      farmaco:     g('steroide-farmaco'),
+      dataInizio:  g('steroide-data'),
+      giorni:      g('steroide-giorni'),
+    },
+    sospetto: {
+      alto:   cb('cb-sospetto-alto'),
+      medio:  cb('cb-sospetto-medio'),
+      altra:  cb('cb-dd-altra'),
+      note:   g('note-aggiuntive') || document.getElementById('note-aggiuntive')?.value || '',
+    },
+    firmaRichiedente: g('firma-nome'),
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const nome = cognome ? cognome.replace(/\s+/g,'_').toUpperCase() : 'paziente';
+  a.href     = url;
+  a.download = `dati_clinici_GCA_${nome}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>

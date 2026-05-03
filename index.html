@@ -41,6 +41,56 @@
         // 'partial' → dati parziali/frammentari  → pesi 80% isto / 20% clinico
         // 'none'    → solo istologia             → peso 100% isto, soglie ricalibrate
         const [clinicalMode, setClinicalMode] = useState('full');
+        const [importedFrom, setImportedFrom] = useState(null); // null | { medico, paziente, data }
+
+        /* ── IMPORTA DATI CLINICI DA FILE JSON ──────────────────────────── */
+        const importaDatiClinici = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const d = JSON.parse(ev.target.result);
+                    if (!d._versione || !d._versione.startsWith('GCA-form')) {
+                        alert('File non riconosciuto. Assicurarsi di usare il modulo clinico GCA.');
+                        return;
+                    }
+                    // Popola dati clinici
+                    const s = d.sintomi || {};
+                    const l = d.laboratorio || {};
+                    const img = d.imaging || {};
+                    const st = d.steroidi || {};
+                    const eta = d.paziente?.ddn
+                        ? Math.floor((new Date() - new Date(d.paziente.ddn)) / 31557600000)
+                        : '';
+                    setClinicalData({
+                        age:           isNaN(eta) ? '' : String(eta),
+                        newHeadache:   !!s.cefalea,
+                        jawClaudication: !!s.claudicatio,
+                        visualSymptoms: !!s.visus,
+                        esr:           l.ves || '',
+                        crp:           !!(l.crp && parseFloat(l.crp) > 5),
+                        haloSign:      !!img.haloSign,
+                        onSteroids:    !!st.siSteroidi,
+                        steroidDays:   st.giorni || '',
+                    });
+                    // Modalità automatica in base alla completezza
+                    const campiCompilati = [s.cefalea, s.claudicatio, s.visus, l.ves, l.crp].filter(Boolean).length;
+                    setClinicalMode(campiCompilati >= 3 ? 'full' : campiCompilati >= 1 ? 'partial' : 'none');
+                    // Banner
+                    setImportedFrom({
+                        medico:  d.firmaRichiedente || d.paziente?.medico || 'N.D.',
+                        paziente: `${d.paziente?.cognome || ''}${d.paziente?.ddn ? ' · ' + d.paziente.ddn : ''}`.trim() || 'N.D.',
+                        data:    new Date(d._esportato).toLocaleDateString('it-IT'),
+                    });
+                    setRefertoOverride(null);
+                } catch(err) {
+                    alert('Errore nella lettura del file. File corrotto o formato non valido.');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = ''; // reset input
+        };
 
         /* ── GATING: struttura arteriosa ────────────────────────────────── */
         const hasArterialStructure = sampleAdequacy.arterialStructure;
@@ -570,6 +620,7 @@
             setRedFlags({atypicalLymphoid:false,necrotizingGranulomas:false,necrotizingVasculitis:false});
             setClinicalMode('full');
             setRefertoOverride(null);
+            setImportedFrom(null);
         };
 
         /* ── RENDER ──────────────────────────────────────────────────────── */
@@ -903,6 +954,27 @@
 
             {/* ═══ COLONNA DESTRA (OUTPUT) ═══ */}
             <div className="space-y-6">
+
+                {/* IMPORTA DATI CLINICI */}
+                <div className="bg-white rounded-lg shadow-md p-4 border border-indigo-200">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-sm font-semibold text-indigo-900">📂 Importa dati clinici</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Carica il file JSON esportato dal modulo clinico</p>
+                        </div>
+                        <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-md whitespace-nowrap">
+                            <span>⬆ Carica file</span>
+                            <input type="file" accept=".json" onChange={importaDatiClinici} className="hidden"/>
+                        </label>
+                    </div>
+                    {importedFrom && (
+                        <div className="mt-3 p-2 bg-green-50 border border-green-300 rounded text-xs text-green-800">
+                            <p className="font-semibold">✓ Dati clinici importati</p>
+                            <p className="mt-0.5">Paziente: <strong>{importedFrom.paziente}</strong> · Medico richiedente: <strong>{importedFrom.medico}</strong> · Esportato il {importedFrom.data}</p>
+                            <p className="mt-1 text-green-700 italic">Verificare i dati precompilati prima di procedere con la valutazione morfologica.</p>
+                        </div>
+                    )}
+                </div>
 
                 {/* BADGE MODALITÀ ATTIVA */}
                 <div className={`rounded-lg p-3 border-2 text-sm font-semibold flex items-center gap-2 ${
