@@ -102,14 +102,14 @@
             majorFindings.transmuralInflammation ||
             minorFindings.lymphocyticInfiltrate ||
             minorFindings.adventitialInflammation;
-        // canUseElasticFull: VVG + infiammazione attiva → punteggio pieno (15 pt maggiore, 5 pt minore)
-        const canUseElasticFull = sampleAdequacy.elasticStain && hasActiveInflammation;
-        // canUseElasticIsolated: VVG eseguita ma SENZA infiammazione attiva → 3 pt con riserva
-        // Razionale: il danno strutturale alla LEI persiste come "cicatrice morfologica" post-steroidea
-        // anche dopo regressione dell'infiltrato; ignorarlo del tutto penalizza i casi trattati.
-        const canUseElasticIsolated = sampleAdequacy.elasticStain && !hasActiveInflammation;
-        // Alias UI: checkbox elastica abilitata se VVG eseguita (indipendentemente dall'infiammazione)
-        const canUseElastic = sampleAdequacy.elasticStain && hasArterialStructure;
+        // Frammentazione LEI visibile anche su EE — VVG migliora la quantificazione ma non è prerequisito.
+        // canUseElasticFull: infiammazione attiva presente → punteggio pieno (15 pt maggiore, 5 pt focale)
+        const canUseElasticFull = hasActiveInflammation;
+        // canUseElasticIsolated: SENZA infiammazione attiva → 3 pt con riserva (diffusa) / 2 pt (focale)
+        // Razionale: danno strutturale LEI persiste come cicatrice morfologica post-steroidea.
+        const canUseElasticIsolated = !hasActiveInflammation;
+        // UI: checkbox abilitata se struttura arteriosa presente (sempre, indipendentemente da VVG)
+        const canUseElastic = hasArterialStructure;
 
         /* ── PESI IN BASE ALLA MODALITÀ ──────────────────────────────────── */
         const getWeights = () => {
@@ -122,7 +122,7 @@
         const getValidationWarnings = () => {
             const warnings = [];
             if (!sampleAdequacy.elasticStain && (majorFindings.elasticFragmentation || minorFindings.focalElasticFragmentation)) {
-                warnings.push({ level:'error', text:'Frammentazione elastica selezionata senza colorazione elastica (VVG) eseguita. I punti relativi sono ESCLUSI dal calcolo. Eseguire VVG prima di refertare.' });
+                warnings.push({ level:'info', text:'Frammentazione elastica selezionata senza VVG: la stima è su EE, morfologicamente valida ma meno precisa nella quantificazione. La VVG è raccomandata per documentazione formale e per la stima percentuale della frammentazione.' });
             }
             if (sampleAdequacy.elasticStain && (majorFindings.elasticFragmentation || minorFindings.focalElasticFragmentation) && !hasActiveInflammation) {
                 warnings.push({ level:'warning', text:'Frammentazione elastica in assenza di infiltrato infiammatorio attivo: contributo ridotto con riserva (3 pt se diffusa >30%; 2 pt se focale <30%). DD obbligatoria: aterosclerosi accelerata, involuzione elastica da invecchiamento, artefatto da processazione. In contesto di biopsia post-steroidea il dato strutturale può avere valore residuo.' });
@@ -645,59 +645,90 @@
                 </div>
             </div>
 
-            {/* ═══ SELETTORE MODALITÀ DATI CLINICI ═══ */}
-            <div className="bg-white rounded-lg shadow-md p-5 mb-6 border-2 border-indigo-200">
-                <h2 className="text-lg font-bold text-indigo-900 mb-3">Disponibilità dati clinici</h2>
-                <p className="text-xs text-gray-500 mb-3">Questa scelta modifica i pesi dello score composito e le soglie diagnostiche.</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {/* COMPLETI */}
-                    <label className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${clinicalMode==='full' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300'}`}>
-                        <input type="radio" name="clinicalMode" value="full" checked={clinicalMode==='full'} onChange={()=>setClinicalMode('full')} className="mt-0.5 text-indigo-600"/>
-                        <div>
-                            <p className="font-semibold text-gray-800 text-sm">Dati clinici completi</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Anamnesi e laboratorio disponibili</p>
-                            <p className="text-xs font-mono text-indigo-600 mt-1">60% isto · 40% clinica</p>
-                        </div>
-                    </label>
-                    {/* PARZIALI */}
-                    <label className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${clinicalMode==='partial' ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-orange-300'}`}>
-                        <input type="radio" name="clinicalMode" value="partial" checked={clinicalMode==='partial'} onChange={()=>setClinicalMode('partial')} className="mt-0.5 text-orange-600"/>
-                        <div>
-                            <p className="font-semibold text-gray-800 text-sm">Dati clinici parziali</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Solo alcuni dati disponibili (es. "cecità improvvisa", età)</p>
-                            <p className="text-xs font-mono text-orange-600 mt-1">80% isto · 20% clinica</p>
-                        </div>
-                    </label>
-                    {/* SOLO ISTOLOGIA */}
-                    <label className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${clinicalMode==='none' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-red-300'}`}>
-                        <input type="radio" name="clinicalMode" value="none" checked={clinicalMode==='none'} onChange={()=>setClinicalMode('none')} className="mt-0.5 text-red-600"/>
-                        <div>
-                            <p className="font-semibold text-gray-800 text-sm">Solo istologia</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Notizie cliniche non disponibili al referto</p>
-                            <p className="text-xs font-mono text-red-600 mt-1">100% isto · soglie ricalibrate</p>
-                        </div>
+            {/* ═══ AREA CLINICA — IMPORT + MODALITÀ + DATI ═══ */}
+            <div className="bg-white rounded-lg shadow-md p-5 mb-6 border-2 border-blue-300">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h2 className="text-lg font-bold text-blue-900">1. Dati Clinici</h2>
+                        <p className="text-xs text-gray-500 mt-0.5">Inserire manualmente o importare dal modulo clinico</p>
+                    </div>
+                    <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-md whitespace-nowrap shadow">
+                        <span>📂 Importa dati clinici</span>
+                        <input type="file" accept=".json" onChange={importaDatiClinici} className="hidden"/>
                     </label>
                 </div>
+                {importedFrom && (
+                    <div className="mb-4 p-2 bg-green-50 border border-green-300 rounded text-xs text-green-800">
+                        <p className="font-semibold">✓ Dati clinici importati</p>
+                        <p className="mt-0.5">Paziente: <strong>{importedFrom.paziente}</strong> · Medico: <strong>{importedFrom.medico}</strong> · {importedFrom.data}</p>
+                        <p className="mt-1 italic text-green-700">Verificare i dati precompilati prima di procedere.</p>
+                    </div>
+                )}
+                {/* Selettore modalità inline */}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                    {[['full','Dati completi','60% isto · 40% clinica','indigo'],['partial','Dati parziali','80% isto · 20% clinica','orange'],['none','Solo istologia','100% isto · soglie ricalibrate','red']].map(([val,label,sub,col])=>(
+                        <label key={val} className={`flex items-start space-x-2 p-2 rounded-lg border-2 cursor-pointer transition-all ${clinicalMode===val ? `border-${col}-500 bg-${col}-50` : 'border-gray-200 hover:border-gray-300'}`}>
+                            <input type="radio" name="clinicalMode" value={val} checked={clinicalMode===val} onChange={()=>setClinicalMode(val)} className="mt-0.5"/>
+                            <div>
+                                <p className="font-semibold text-gray-800 text-xs">{label}</p>
+                                <p className={`text-xs font-mono text-${col}-600 mt-0.5`}>{sub}</p>
+                            </div>
+                        </label>
+                    ))}
+                </div>
                 {clinicalMode === 'none' && (
-                    <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                        <strong>Modalità istologia pura:</strong> La sezione Dati Clinici rimane compilabile ma non contribuisce allo score composito. Se si dispone anche di un solo dato clinico rilevante (età ≥70, sintomi oculari, claudicatio), considerare la modalità <em>Parziale</em>.
-                    </div>
+                    <p className="text-xs text-red-600 italic mb-3">I dati inseriti non contribuiscono allo score composito ma vengono mostrati nel riepilogo.</p>
                 )}
-                {clinicalMode === 'partial' && (
-                    <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
-                        <strong>Modalità parziale:</strong> Inserire solo i dati clinici effettivamente disponibili. I campi vuoti sono conteggiati come assenti — lo score è conservativo per costruzione. Ogni dato aggiunto migliora la stima.
+                {/* Campi clinici */}
+                <div className={`${clinicalMode==='none' ? 'opacity-60' : ''}`}>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Età paziente (anni)</label>
+                            <input type="number" value={clinicalData.age} onChange={e=>setClinicalData({...clinicalData,age:e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" placeholder="es. 72"/>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">VES (mm/h)</label>
+                            <input type="number" value={clinicalData.esr} onChange={e=>setClinicalData({...clinicalData,esr:e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" placeholder="es. 95"/>
+                        </div>
                     </div>
-                )}
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                        {[['newHeadache','Cefalea di nuova insorgenza'],['jawClaudication','Claudicatio mascellare'],
+                          ['visualSymptoms','Disturbi visivi (amaurosi, diplopia, perdita visus)'],
+                          ['crp','PCR elevata'],['haloSign','Halo sign ecografico positivo']
+                        ].map(([key,label])=>(
+                            <label key={key} className="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" checked={clinicalData[key]} onChange={e=>setClinicalData({...clinicalData,[key]:e.target.checked})}
+                                    className="w-4 h-4 text-indigo-600 rounded"/>
+                                <span className="text-sm text-gray-700">{label}</span>
+                            </label>
+                        ))}
+                    </div>
+                    <label className="flex items-center space-x-2 cursor-pointer mt-1">
+                        <input type="checkbox" checked={clinicalData.onSteroids} onChange={e=>setClinicalData({...clinicalData,onSteroids:e.target.checked})}
+                            className="w-4 h-4 text-indigo-600 rounded"/>
+                        <span className="text-sm text-gray-700">Terapia steroidea già iniziata</span>
+                    </label>
+                    {clinicalData.onSteroids && (
+                        <div className="ml-6 mt-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Giorni di terapia steroidea</label>
+                            <input type="number" value={clinicalData.steroidDays} onChange={e=>setClinicalData({...clinicalData,steroidDays:e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" placeholder="es. 5"/>
+                            <p className="text-xs text-gray-500 mt-1">Sensibilità bioptica ridotta già dopo 3–5 gg; sostanzialmente dopo 14 gg (Ing et al. 2019)</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-6">            <div className="grid md:grid-cols-2 gap-6">
 
             {/* ═══ COLONNA SINISTRA ═══ */}
             <div className="space-y-6">
 
                 {/* 1. ADEGUATEZZA */}
                 <div className="bg-white rounded-lg shadow-md p-5">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">1. Adeguatezza Campione</h2>
+                    <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">2. Adeguatezza Campione</h2>
                     <div className="space-y-3">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Lunghezza frammento (mm)</label>
@@ -726,8 +757,8 @@
                             <span className="text-sm text-gray-700">Colorazione elastica eseguita (Verhoeff-Van Gieson o equivalente)</span>
                         </label>
                         {!sampleAdequacy.elasticStain && (
-                            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
-                                ⚠ Colorazione elastica non eseguita. Se selezionati, i reperti di frammentazione elastica genereranno un'incoerenza bloccante e saranno esclusi dal calcolo.
+                            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                                ℹ VVG non eseguita. La frammentazione elastica può essere valutata su EE, ma la VVG è raccomandata per quantificazione formale e documentazione. I punti vengono assegnati normalmente.
                             </p>
                         )}
                     </div>
@@ -736,7 +767,7 @@
                 {/* 2. REPERTI MAGGIORI */}
                 <div className="bg-white rounded-lg shadow-md p-5">
                     <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                        2. Reperti Istologici Maggiori
+                        3. Reperti Istologici Maggiori
                         <span className="text-sm font-normal text-gray-500 ml-2">(pesi gerarchizzati per specificità)</span>
                     </h2>
                     <div className="space-y-3">
@@ -773,7 +804,7 @@
                                 Frammentazione elastica diffusa (&gt;30%) della LEI
                                 {canUseElasticFull && <span className="text-xs font-semibold text-orange-600 ml-1">15 pt</span>}
                                 {canUseElasticIsolated && <span className="text-xs font-semibold text-amber-600 ml-1">3 pt (isolata — con riserva)</span>}
-                                {!sampleAdequacy.elasticStain && <span className="text-xs text-red-400 ml-1">[disabilitato: VVG non eseguita]</span>}
+                                {!sampleAdequacy.elasticStain && <span className="text-xs text-red-400 ml-1">[VVG non eseguita — stima su EE]</span>}
                                 {canUseElasticFull && <span className="block text-xs text-gray-400">— con infiammazione attiva: criterio maggiore (15 pt)</span>}
                                 {canUseElasticIsolated && <span className="block text-xs text-amber-700">— senza infiammazione attiva: 3 pt con riserva. DD: aterosclerosi, involuzione da invecchiamento, artefatto da processazione, biopsia post-steroidea. Selezionare se diffusa e su VVG inequivocabile.</span>}
                                 {!sampleAdequacy.elasticStain && <span className="block text-xs text-gray-400">— richiede VVG eseguita</span>}
@@ -803,7 +834,7 @@
                 {/* 3. REPERTI MINORI */}
                 <div className="bg-white rounded-lg shadow-md p-5">
                     <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                        3. Reperti Istologici Minori
+                        4. Reperti Istologici Minori
                         <span className="text-sm font-normal text-gray-500 ml-2">(5 pt ciascuno — aumentano sensibilità)</span>
                     </h2>
                     <div className="space-y-2">
@@ -833,7 +864,7 @@
                                 Frammentazione elastica focale (&lt;30%) della LEI
                                 {canUseElasticFull && <span className="text-xs font-semibold text-orange-600 ml-1">5 pt</span>}
                                 {canUseElasticIsolated && <span className="text-xs font-semibold text-amber-600 ml-1">2 pt (isolata — con riserva)</span>}
-                                {!sampleAdequacy.elasticStain && <span className="text-xs text-red-400 ml-1">— disabilitato: VVG non eseguita</span>}
+                                {!sampleAdequacy.elasticStain && <span className="text-xs text-red-400 ml-1">— VVG non eseguita: stima su EE</span>}
                                 {canUseElasticIsolated && <span className="block text-xs text-amber-700">— senza infiammazione attiva: 2 pt con riserva. Vedere DD sopra.</span>}
                             </span>
                         </label>
@@ -885,56 +916,9 @@
                     </div>
                 </div>
 
-                {/* 4. DATI CLINICI */}
-                <div className={`bg-white rounded-lg shadow-md p-5 ${clinicalMode==='none' ? 'opacity-60' : ''}`}>
-                    <h2 className="text-xl font-bold text-gray-800 mb-1 border-b pb-2">
-                        4. Dati Clinici
-                        {clinicalMode === 'none' && <span className="text-sm font-normal text-red-500 ml-2">(non contribuisce allo score — modalità solo istologia)</span>}
-                        {clinicalMode === 'partial' && <span className="text-sm font-normal text-orange-500 ml-2">(inserire solo i dati disponibili)</span>}
-                    </h2>
-                    {clinicalMode === 'none' && (
-                        <p className="text-xs text-gray-500 italic mb-3 mt-1">I dati inseriti qui saranno mostrati nel riepilogo ma non modificano lo score composito in modalità "Solo istologia".</p>
-                    )}
-                    <div className="space-y-3 mt-3">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Età paziente (anni)</label>
-                            <input type="number" value={clinicalData.age} onChange={e=>setClinicalData({...clinicalData,age:e.target.value})}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" placeholder="es. 72"/>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">VES (mm/h)</label>
-                            <input type="number" value={clinicalData.esr} onChange={e=>setClinicalData({...clinicalData,esr:e.target.value})}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" placeholder="es. 95"/>
-                        </div>
-                        {[['newHeadache','Cefalea di nuova insorgenza'],['jawClaudication','Claudicatio mascellare'],
-                          ['visualSymptoms','Disturbi visivi (amaurosi fugace, diplopia, perdita visus)'],
-                          ['crp','PCR elevata'],['haloSign','Halo sign ecografico positivo (eco-Doppler temporale)']
-                        ].map(([key,label])=>(
-                            <label key={key} className="flex items-center space-x-2 cursor-pointer">
-                                <input type="checkbox" checked={clinicalData[key]} onChange={e=>setClinicalData({...clinicalData,[key]:e.target.checked})}
-                                    className="w-4 h-4 text-indigo-600 rounded"/>
-                                <span className="text-sm text-gray-700">{label}</span>
-                            </label>
-                        ))}
-                        <label className="flex items-center space-x-2 cursor-pointer">
-                            <input type="checkbox" checked={clinicalData.onSteroids} onChange={e=>setClinicalData({...clinicalData,onSteroids:e.target.checked})}
-                                className="w-4 h-4 text-indigo-600 rounded"/>
-                            <span className="text-sm text-gray-700">Terapia steroidea già iniziata</span>
-                        </label>
-                        {clinicalData.onSteroids && (
-                            <div className="ml-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Giorni di terapia steroidea</label>
-                                <input type="number" value={clinicalData.steroidDays} onChange={e=>setClinicalData({...clinicalData,steroidDays:e.target.value})}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" placeholder="es. 5"/>
-                                <p className="text-xs text-gray-500 mt-1">Sensibilità bioptica ridotta già dopo 3–5 gg; sostanzialmente ridotta dopo 14 gg (Ing et al. 2019)</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* 5. IHC ESEGUITA */}
+                {/* 4. IHC ESEGUITA */}
                 <div className="bg-white rounded-lg shadow-md p-5">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">5. Marker IHC Eseguiti</h2>
+                    <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">4. Marker IHC Eseguiti</h2>
                     <div className="space-y-2">
                         {[['cd68','CD68','macrofagi/cellule giganti'],['cd4','CD4','T helper — prevalente in media in GCA'],
                           ['cd8','CD8','T citotossici — prevalente in avventizia in GCA'],['cd3','CD3','pan-T'],
@@ -954,37 +938,6 @@
 
             {/* ═══ COLONNA DESTRA (OUTPUT) ═══ */}
             <div className="space-y-6">
-
-                {/* IMPORTA DATI CLINICI */}
-                <div className="bg-white rounded-lg shadow-md p-4 border border-indigo-200">
-                    <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <p className="text-sm font-semibold text-indigo-900">📂 Importa dati clinici</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Carica il file JSON esportato dal modulo clinico</p>
-                        </div>
-                        <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-md whitespace-nowrap">
-                            <span>⬆ Carica file</span>
-                            <input type="file" accept=".json" onChange={importaDatiClinici} className="hidden"/>
-                        </label>
-                    </div>
-                    {importedFrom && (
-                        <div className="mt-3 p-2 bg-green-50 border border-green-300 rounded text-xs text-green-800">
-                            <p className="font-semibold">✓ Dati clinici importati</p>
-                            <p className="mt-0.5">Paziente: <strong>{importedFrom.paziente}</strong> · Medico richiedente: <strong>{importedFrom.medico}</strong> · Esportato il {importedFrom.data}</p>
-                            <p className="mt-1 text-green-700 italic">Verificare i dati precompilati prima di procedere con la valutazione morfologica.</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* BADGE MODALITÀ ATTIVA */}
-                <div className={`rounded-lg p-3 border-2 text-sm font-semibold flex items-center gap-2 ${
-                    clinicalMode==='none'    ? 'bg-red-50 border-red-400 text-red-800' :
-                    clinicalMode==='partial' ? 'bg-orange-50 border-orange-400 text-orange-800' :
-                                              'bg-indigo-50 border-indigo-400 text-indigo-800'
-                }`}>
-                    <span>{clinicalMode==='none' ? '🔬' : clinicalMode==='partial' ? '⚠' : '✓'}</span>
-                    <span>Modalità: <strong>{clinicalMode==='none' ? 'Solo istologia' : clinicalMode==='partial' ? 'Dati clinici parziali' : 'Dati clinici completi'}</strong> — pesi {weightLabel}</span>
-                </div>
 
                 {/* AVVISI DI COERENZA */}
                 {validationWarnings.length > 0 && (
@@ -1423,7 +1376,7 @@
                     <div className="text-xs text-gray-600">
                         <p>Algoritmo euristico ispirato a criteri ACR/EULAR 2022 — pesi non validati prospetticamente</p>
                         <p className="mt-1">Strumento di supporto — non sostituisce il giudizio clinico-patologico</p>
-                        <p className="mt-2 text-indigo-600 font-semibold">v3.6 — Aprile 2026</p>
+                        <p className="mt-2 text-indigo-600 font-semibold">v3.6.1 — Maggio 2026</p>
                         <div className="mt-2 pt-2 border-t border-gray-200">
                             <a href="https://github.com/Infingardo/arteriti/blob/main/bigino_vasculiti.pdf" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">📄 Bigino vasculiti (PDF)</a>
                         </div>
