@@ -14,7 +14,12 @@
     </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="root"><div style="padding:40px;font-family:sans-serif;color:#333;text-align:center"><p style="font-size:16px">⏳ Caricamento in corso...</p><p style="font-size:12px;color:#999;margin-top:8px">Il tool usa React + Babel CDN. Se questo messaggio persiste oltre 10 secondi, ricaricare la pagina.</p></div></div>
+<script>
+window.addEventListener('error', function(e){
+    document.getElementById('root').innerHTML = '<div style="padding:20px;color:red;font-family:monospace;font-size:12px"><strong>ERRORE JS:</strong><br>' + e.message + '<br>Linea: ' + e.lineno + '</div>';
+});
+</script>
 <script type="text/babel">
     const { useState } = React;
 
@@ -666,12 +671,16 @@
                 )}
                 {/* Selettore modalità inline */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
-                    {[['full','Dati completi','60% isto · 40% clinica','indigo'],['partial','Dati parziali','80% isto · 20% clinica','orange'],['none','Solo istologia','100% isto · soglie ricalibrate','red']].map(([val,label,sub,col])=>(
-                        <label key={val} className={`flex items-start space-x-2 p-2 rounded-lg border-2 cursor-pointer transition-all ${clinicalMode===val ? `border-${col}-500 bg-${col}-50` : 'border-gray-200 hover:border-gray-300'}`}>
+                    {[
+                        {val:'full',    label:'Dati completi',  sub:'60% isto · 40% clinica',          active:'border-indigo-500 bg-indigo-50', text:'text-indigo-600'},
+                        {val:'partial', label:'Dati parziali',  sub:'80% isto · 20% clinica',          active:'border-orange-500 bg-orange-50', text:'text-orange-600'},
+                        {val:'none',    label:'Solo istologia', sub:'100% isto · soglie ricalibrate',   active:'border-red-500 bg-red-50',      text:'text-red-600'},
+                    ].map(({val,label,sub,active,text})=>(
+                        <label key={val} className={`flex items-start space-x-2 p-2 rounded-lg border-2 cursor-pointer transition-all ${clinicalMode===val ? active : 'border-gray-200 hover:border-gray-300'}`}>
                             <input type="radio" name="clinicalMode" value={val} checked={clinicalMode===val} onChange={()=>setClinicalMode(val)} className="mt-0.5"/>
                             <div>
                                 <p className="font-semibold text-gray-800 text-xs">{label}</p>
-                                <p className={`text-xs font-mono text-${col}-600 mt-0.5`}>{sub}</p>
+                                <p className={`text-xs font-mono mt-0.5 ${clinicalMode===val ? text : 'text-gray-400'}`}>{sub}</p>
                             </div>
                         </label>
                     ))}
@@ -721,7 +730,7 @@
                 </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-6">
 
             {/* ═══ COLONNA SINISTRA ═══ */}
             <div className="space-y-6">
