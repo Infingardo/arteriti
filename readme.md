@@ -26,7 +26,7 @@ Aprire `index.html` in un browser moderno. Nessuna installazione richiesta.
 
 ### Output
 
-- **Score istologico** (0-100): reperti maggiori 25 pt, minori 5 pt
+- **Score istologico** (0-81): cellule giganti 22 pt, granulomatosa 22 pt da sola / 11 pt con le cellule giganti, frammentazione elastica diffusa 15 pt (3 pt se isolata, senza infiltrato attivo), infiammazione transmurale 13 pt, minori 5 pt ciascuno. Il massimo NON è 100: frammentazione diffusa e focale descrivono la stessa lamina e si escludono.
 - **Score clinico** (0-100): criteri ACR/EULAR pesati
 - **Score composito**: 60% isto + 40% clinico − penalità steroidi
 - **Categoria diagnostica**: Diagnostico / Altamente suggestivo / Compatibile / Sospetto basso / Negativo / Non valutabile
@@ -98,3 +98,12 @@ Sviluppato per uso interno — Anatomia Patologica.
 ## Disclaimer
 
 Strumento di supporto decisionale. La diagnosi finale rimane responsabilità del patologo refertante, integrata con il contesto clinico completo. I punteggi e le probabilità sono stime basate su dati di letteratura e non sostituiscono la valutazione esperta.
+
+
+## Test
+
+```
+npm test
+```
+
+La logica sta in `engine.js` (nessun DOM, nessun JSX): la pagina e i test percorrono la stessa funzione `runCase()`. Vedere `CHANGELOG.md` per il motivo per cui esiste.
