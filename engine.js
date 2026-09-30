@@ -140,7 +140,7 @@ function makeEngine(st){
             let adequacyLevel;
             if (!hasArterialStructure) adequacyLevel = 'inadequate';
             else if (lengthMissing || sectionsMissing) adequacyLevel = 'unknown';
-            else if (length < 5 || sections < 6) adequacyLevel = 'suboptimal';
+            else if (length < 10 || sections < 6) adequacyLevel = 'suboptimal';
             else adequacyLevel = 'adequate';
 
             if (adequacyLevel === 'inadequate') {

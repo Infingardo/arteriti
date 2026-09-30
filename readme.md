@@ -1,104 +1,77 @@
-# GCA Diagnostic Scoring Tool
+# Checklist morfologico-clinica — Arterite a Cellule Giganti (GCA)
 
-Algoritmo diagnostico integrato per **Arterite a Cellule Giganti (GCA)** — biopsia dell'arteria temporale.
+Griglia decisionale strutturata per la refertazione della biopsia dell'arteria temporale: reperti istologici, contesto clinico e coerenza interna dei dati inseriti.
 
-## Scopo
-
-Tool di supporto decisionale per la refertazione di biopsie temporali sospette per GCA. Integra dati istologici, contesto clinico e raccomandazioni IHC in uno scoring composito.
-
-**Non sostituisce il giudizio clinico-patologico.**
+> **È una griglia euristica, non uno score validato.** Non è un calcolatore dei criteri ACR/EULAR 2022 né uno score clinico-patologico pubblicato; pesi e soglie non sono stati validati prospetticamente. Le categorie sono qualitative e il numero composito è un indice orientativo, non una probabilità calibrata. La diagnosi resta responsabilità del patologo e del clinico refertante.
 
 ## Utilizzo
 
-Aprire `index.html` in un browser moderno. Nessuna installazione richiesta.
+Aprire `index.html` in un browser moderno (anche da `file://`). Nessuna installazione, nessun server, nessuna rete: React, Babel e Tailwind sono in `vendor/`.
 
-## Funzionalità
+Gli altri file HTML/PDF sono materiale collegato, indipendente dal calcolatore: `flowchart_clinici.html`, `bigino_gca_clinici.html`, `richiesta_biopsia_temporale.html` (modulo di richiesta clinica, da cui `index.html` può importare i dati). Questi tre caricano i font IBM Plex da Google Fonts; offline ripiegano sul font di sistema.
 
-### Input
+## Struttura
+
+| File | Ruolo |
+|------|-------|
+| `engine.js` | Tutta la logica (scoring, categorie, referto, raccomandazioni IHC). Nessun DOM, nessun JSX, eseguibile da Node |
+| `index.html` | Interfaccia React; chiama `runCase()` di `engine.js`, non duplica la logica |
+| `tests/run.mjs` | Suite di test (nessun framework) |
+| `vendor/` | Dipendenze locali (React 18, Babel, Tailwind) |
+| `CHANGELOG.md` | Storia delle modifiche e scelte di progetto |
+
+## Input
 
 | Sezione | Parametri |
 |---------|-----------|
-| **Adeguatezza campione** | Lunghezza (mm), n° sezioni, struttura arteriosa, colorazione elastica |
-| **Reperti maggiori** | Cellule giganti, infiammazione granulomatosa, frammentazione elastica diffusa, infiammazione transmurale |
-| **Reperti minori** | Infiltrato linfocitario CD4+, ispessimento intimale, infiammazione avventiziale, neovascolarizzazione, frammentazione elastica focale |
-| **Dati clinici** | Età, VES, cefalea, claudicatio mascellare, disturbi visivi, PCR, halo sign, terapia steroidea |
+| **Dati clinici** | Età, VES, cefalea di nuova insorgenza, claudicatio mascellare, disturbi visivi, PCR elevata, halo sign, terapia steroidea (con durata) |
+| **Adeguatezza campione** | Lunghezza (mm), n° sezioni, struttura arteriosa identificabile, colorazione elastica (VVG) |
+| **Reperti maggiori** | Cellule giganti, infiammazione granulomatosa, frammentazione elastica diffusa (>30%), infiammazione transmurale |
+| **Reperti minori** | Infiltrato linfocitario medio-intimale, ispessimento intimale, infiammazione avventiziale, neovascolarizzazione, frammentazione elastica focale (<30%) |
+| **Reperti inattesi** | Cellule linfoidi atipiche, granulomi necrotizzanti, vasculite necrotizzante |
 | **IHC eseguita** | CD68, CD4, CD8, CD3, CD20 |
 
-### Output
+## Output
 
-- **Score istologico** (0-81): cellule giganti 22 pt, granulomatosa 22 pt da sola / 11 pt con le cellule giganti, frammentazione elastica diffusa 15 pt (3 pt se isolata, senza infiltrato attivo), infiammazione transmurale 13 pt, minori 5 pt ciascuno. Il massimo NON è 100: frammentazione diffusa e focale descrivono la stessa lamina e si escludono.
-- **Score clinico** (0-100): criteri ACR/EULAR pesati
-- **Score composito**: 60% isto + 40% clinico − penalità steroidi
-- **Categoria diagnostica**: Diagnostico / Altamente suggestivo / Compatibile / Sospetto basso / Negativo / Non valutabile
-- **Raccomandazioni IHC**: marker suggeriti in base al quadro
+- **Score istologico, 0–81.** Cellule giganti 22; granulomatosa 22 da sola, 11 se associata alle cellule giganti; frammentazione elastica diffusa 15; infiammazione transmurale 13; ciascun minore 5. Il massimo non è 100: frammentazione diffusa e focale descrivono la stessa lamina e si escludono (la compresenza è un'incoerenza bloccante). Senza infiltrato attivo la frammentazione elastica vale solo 3 pt (diffusa) o 2 pt (focale), con riserva.
+- **Score clinico, 0–100** (raw 135, cappato): età ≥50 (+15) e ≥70 (+10), cefalea 20, claudicatio 25, disturbi visivi 20, VES ≥50 (+10) e ≥80 (+10), PCR 10, halo sign 15.
+- **Composito**: somma pesata di istologico e clinico, con il massimo della modalità corrente dichiarato (es. `61/81` in «solo istologia»). Nessuna penalità numerica per gli steroidi: l'effetto è gestito come avviso interpretativo e nota nel referto.
+- **Categoria**, scelta da composito, n° di reperti maggiori, presenza di un criterio «core» (cellule giganti e/o granulomatosa) e score clinico.
+- **Referto** testuale editabile, con conclusione selezionata sulla chiave della categoria.
+- **Raccomandazioni IHC** in base al quadro e ai marker già eseguiti.
+- **Avvisi di coerenza**: incompatibilità logiche tra selezioni, che portano a «Valutazione non affidabile».
 
-## Metodologia
+### Modalità dei dati clinici
 
-### Pesi scoring
+La modalità segue i campi clinici effettivamente compilati (finché non la si fissa a mano). I campi non compilati contano come assenti.
 
-| Categoria | Peso | Razionale |
-|-----------|------|-----------|
-| Reperti maggiori | 25 pt | Specificità >90% |
-| Reperti minori | 5 pt | Aumentano sensibilità |
-| Score composito | 60% isto / 40% clinico | Bilancia dati oggettivi e contesto |
-| Penalità steroidi | -10 a -30 pt | Riduzione sensibilità documentata |
+| Modalità | Pesi istologico / clinico |
+|----------|---------------------------|
+| Completa | 60% / 40% |
+| Parziale | 80% / 20% |
+| Solo istologia | 100% / 0%, con soglie dedicate |
 
-### Soglie diagnostiche
+## Categorie
 
-| Score | Categoria | Probabilità |
-|-------|-----------|-------------|
-| ≥70 + ≥2 maggiori | Diagnostico | >95% |
-| ≥55 + ≥1 maggiore | Altamente suggestivo | 75-95% |
-| ≥40 + score clinico ≥40 | Compatibile | 50-75% |
-| ≥25 | Sospetto basso | 25-50% |
-| <25 | Negativo | <25% |
+Soglie sul composito (euristiche, non calibrate). Con dati clinici (completa/parziale):
 
-### Criteri adeguatezza
+| Categoria | Condizione |
+|-----------|-----------|
+| Istologia diagnostica per GCA | ≥70 e ≥2 maggiori, incluso un core criterion |
+| Altamente suggestivo | ≥55 e ≥1 maggiore (o ≥3 minori con score clinico ≥50). Se il composito è guidato dalla clinica diventa «compatibile — clinica altamente suggestiva», o «aspecifica — clinica suggestiva» se non c'è alcun maggiore |
+| Istologia non diagnostica — clinica suggestiva | ≥40 e score clinico ≥40 |
+| Bassa concordanza | ≥25 |
+| Negativa / non conclusiva | <25 |
 
-- Lunghezza ≥10 mm (ottimale 15-20 mm)
-- ≥10 sezioni (raccomandato ≥15)
-- Struttura arteriosa identificabile
-- Colorazione elastica eseguita
+Solo istologia: diagnostica ≥55 (≥2 maggiori + core); altamente suggestiva ≥40 (≥1 maggiore); compatibile non diagnostica ≥20 (≥1 maggiore o ≥2 minori); bassa concordanza ≥10; negativa <10.
 
-## Fonti principali
+Casi speciali: campione privo di struttura arteriosa → **inadeguato** (nessuno score istologico); selezioni incompatibili → **valutazione non affidabile**; reperti inattesi → la categoria resta ma è dichiarata **subordinata a DD alternativa**.
 
-- **ACR/EULAR 2023**: Criteri classificativi GCA (Ponte et al., Arthritis Rheumatol 2024)
-- **EULAR 2023**: Raccomandazioni imaging vasculiti grandi vasi (Dejaco et al., Ann Rheum Dis 2023)
-- **Ciccia et al. 2023**: Meta-analisi caratterizzazione istopatologica (Semin Arthritis Rheum)
-- **Ing et al. 2023**: Sensibilità bioptica sotto steroidi (J Neuroophthalmol)
+Limite noto, aperto nel changelog: in modalità completa la sola morfologia arriva a 81 × 0,6 ≈ 49, sotto la soglia diagnostica di 70; senza almeno ~46 punti clinici nessun quadro istologico raggiunge la categoria diagnostica.
 
-Bibliografia completa nel tool.
+### Adeguatezza del campione
 
-## Note tecniche
-
-- HTML5 + React 18 + Tailwind CSS (CDN)
-- Zero dipendenze server-side
-- Funziona offline dopo il primo caricamento
-- Testato su Chrome, Firefox, Safari, Edge
-
-### Warning Tailwind
-
-```
-Warning: cdn.tailwindcss.com should not be used in production
-```
-
-Ignorabile per tool standalone. Non impatta funzionalità.
-
-## Changelog
-
-| Versione | Data | Modifiche |
-|----------|------|-----------|
-| 1.0.1 | 2024-12 | Fix validazione campi numerici vuoti; ottimizzazione calcolo IHC recommendations |
-| 1.0.0 | 2024-10 | Release iniziale |
-
-## Autore
-
-Sviluppato per uso interno — Anatomia Patologica.
-
-## Disclaimer
-
-Strumento di supporto decisionale. La diagnosi finale rimane responsabilità del patologo refertante, integrata con il contesto clinico completo. I punteggi e le probabilità sono stime basate su dati di letteratura e non sostituiscono la valutazione esperta.
-
+Struttura arteriosa identificabile (obbligatoria, altrimenti inadeguato). Campione **subottimale** se <10 mm o <6 sezioni (la pagina indica come ideali 15–20 mm e ≥10 sezioni seriali, senza declassare oltre la soglia); dimensioni non inserite → «non note» (dichiarato nel referto, non declassa la categoria). Il livello subottimale non cambia il punteggio né la categoria: aggiunge un avviso, rilevante soprattutto per una biopsia negativa con sospetto clinico elevato. La VVG è raccomandata per documentare la frammentazione elastica; senza VVG la stima su EE è accettata con avviso.
 
 ## Test
 
@@ -106,4 +79,16 @@ Strumento di supporto decisionale. La diagnosi finale rimane responsabilità del
 npm test
 ```
 
-La logica sta in `engine.js` (nessun DOM, nessun JSX): la pagina e i test percorrono la stessa funzione `runCase()`. Vedere `CHANGELOG.md` per il motivo per cui esiste.
+89 asserzioni, inclusa l'esplorazione esaustiva di 12 288 combinazioni di reperti, modalità e dati clinici (nessuna categoria senza conclusione né con conclusione contraddittoria) e la verifica per forza bruta del massimo istologico.
+
+## Fonti principali
+
+- Ponte C, et al. **2022 ACR/EULAR classification criteria for GCA.** Arthritis Rheumatol 2022;74:1881–89 · Ann Rheum Dis 2022;81:1647–53
+- Dejaco C, et al. **EULAR recommendations for imaging in large vessel vasculitis: 2023 update.**
+- Hellmich B, et al. **2018 update of the EULAR recommendations for the management of large vessel vasculitis.** Ann Rheum Dis 2020
+
+Bibliografia completa nel tool.
+
+## Disclaimer
+
+Strumento di supporto decisionale per uso interno in Anatomia Patologica. Non sostituisce il giudizio clinico-patologico: la diagnosi finale spetta al patologo refertante, integrata con il contesto clinico completo.
