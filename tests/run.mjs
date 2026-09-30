@@ -197,7 +197,9 @@ section('adeguatezza');
   eq('struttura arteriosa assente → non refertabile', runCase(S({sa:{arterialStructure:false}})).scores.adequacyLevel, 'inadequate');
   eq('dimensioni non inserite → sconosciuta', runCase(S({sa:{length:'',sections:''}})).scores.adequacyLevel, 'unknown');
   eq('3 mm / 4 sezioni → subottimale', runCase(S({sa:{length:'3',sections:'4'}})).scores.adequacyLevel, 'suboptimal');
-  eq('8 mm / 8 sezioni → adeguata', runCase(S({sa:{length:'8',sections:'8'}})).scores.adequacyLevel, 'adequate');
+  eq('8 mm / 8 sezioni → subottimale (<10 mm)', runCase(S({sa:{length:'8',sections:'8'}})).scores.adequacyLevel, 'suboptimal');
+  eq('12 mm / 5 sezioni → subottimale (<6 sezioni)', runCase(S({sa:{length:'12',sections:'5'}})).scores.adequacyLevel, 'suboptimal');
+  eq('10 mm / 6 sezioni → adeguata', runCase(S({sa:{length:'10',sections:'6'}})).scores.adequacyLevel, 'adequate');
   // scelta esplicita: la mancata registrazione delle dimensioni e' una lacuna di
   // documentazione, non morfologica, e non declassa la diagnosi. Lo dice il referto.
   const senzaMisure = runCase(S({ sa:{length:'',sections:''}, maj:GCA_PIENA, cli:CLIN_PIENA }));

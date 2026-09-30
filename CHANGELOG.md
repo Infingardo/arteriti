@@ -1,5 +1,8 @@
 # Changelog — Checklist morfologico-clinica GCA
 
+## Non rilasciato
+- **Soglia di adeguatezza allineata alla pagina.** La pagina indica «ottimale ≥10 mm, minimo 6 sezioni», ma il motore dichiarava «adeguato» un frammento di 5–9 mm (soglia <5 mm). Ora «subottimale» = <10 mm o <6 sezioni. Nessun effetto su punteggio e categoria: cambiano solo badge e avviso.
+
 ## v3.7.0 (Settembre 2026) — «non diagnostica» non deve uscire come «diagnostica»
 
 ### Il difetto principale

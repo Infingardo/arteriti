@@ -71,7 +71,7 @@ Limite noto, aperto nel changelog: in modalità completa la sola morfologia arri
 
 ### Adeguatezza del campione
 
-Struttura arteriosa identificabile (obbligatoria, altrimenti inadeguato). Campione **subottimale** se <5 mm o <6 sezioni; dimensioni non inserite → «non note» (dichiarato nel referto, non declassa la categoria). La VVG è raccomandata per documentare la frammentazione elastica; senza VVG la stima su EE è accettata con avviso.
+Struttura arteriosa identificabile (obbligatoria, altrimenti inadeguato). Campione **subottimale** se <10 mm o <6 sezioni (la pagina indica come ideali 15–20 mm e ≥10 sezioni seriali, senza declassare oltre la soglia); dimensioni non inserite → «non note» (dichiarato nel referto, non declassa la categoria). Il livello subottimale non cambia il punteggio né la categoria: aggiunge un avviso, rilevante soprattutto per una biopsia negativa con sospetto clinico elevato. La VVG è raccomandata per documentare la frammentazione elastica; senza VVG la stima su EE è accettata con avviso.
 
 ## Test
 
