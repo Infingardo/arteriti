@@ -115,3 +115,55 @@ Eseguibili con `node tests/proposta_scvp.mjs`. Il file **non è agganciato a `np
 - Con la rev. 2 si riducono le chiavi di categoria (da 9 a 6 raggiungibili) e l'esplorazione dei 12 288 casi si semplifica: i campi clinici non cambiano più l'esito.
 - Test esistenti: stimo che si modifichino quelli sui pesi/modalità clinica, oltre a quelli che fissano i testi del referto («arterite a cellule giganti», skip lesion 10–15%, nota steroidi) e l'eventuale caso che assume `bassa_concordanza` per un quadro con infiltrato della media. Lo verifico al momento dell'implementazione, non prima.
 - Versione: sarebbe una 3.8.0, con changelog.
+
+## 6. Esempi di referto (template, stile SCVP tabella 3 adattato al reparto)
+
+Sono template: misure, numero di livelli, gradi ed esiti delle colorazioni sono placeholder `[ ]` da compilare al vetro. Adattamento in italiano dello schema SCVP, non traduzione letterale.
+
+**Intestazione comune**
+
+- **Notizie cliniche:** [citazione del campo / non fornite]
+- **Macroscopia:** segmento di arteria temporale [dx/sn] di [n] mm di lunghezza e [n] mm di diametro, incluso in toto e sezionato a intervalli di 1–2 mm dopo processazione.
+- **Microscopia (metodo):** [n] livelli per sezione, colorazione EE e per le fibre elastiche ([VVG/Movat]).
+
+### 6.1 Arterite attiva, con cellule giganti
+
+- **Microscopia:** infiltrato linfoistiocitario che interessa la media, con [sede: giunzione intima-media / intero spessore], associato a cellule giganti multinucleate di tipo Langhans e a interruzioni della lamina elastica interna ([segmentarie/estese]). Ispessimento intimale [grado]. Infiltrato anche in avventizia e nel tessuto periavventiziale.
+- **Diagnosi:** Arteria temporale [dx/sn], biopsia: segmento di arteria muscolare con arterite attiva.
+- **Nota:** L'interpretazione nosologica (arterite a cellule giganti o altra arterite) è demandata all'integrazione con il quadro clinico.
+
+### 6.2 Arterite attiva, senza cellule giganti
+
+- **Microscopia:** infiltrato linfoistiocitario che interessa la media, [con/senza] interessamento intimale e avventiziale. Non si osservano cellule giganti. Lamina elastica interna: [integra / interrotta in modo segmentario].
+- **Diagnosi:** Arteria temporale [dx/sn], biopsia: segmento di arteria muscolare con arterite attiva.
+- **Nota:** L'assenza di cellule giganti non modifica la diagnosi: non sono necessarie. Interpretazione nosologica demandata all'integrazione con il quadro clinico.
+
+Caso che il motore v3.7.0 classifica come «bassa concordanza» (T1).
+
+### 6.3 Infiammazione limitata all'avventizia
+
+- **Microscopia:** infiltrato infiammatorio cronico [focale/multifocale] nell'avventizia e nel tessuto periavventiziale, anche attorno ai vasa vasorum. La media non è interessata. Ulteriori livelli: [esito: invariato / evidenza di infiltrato nella media].
+- **Diagnosi:** Arteria temporale [dx/sn], biopsia: segmento di arteria muscolare senza arterite attiva; infiltrato infiammatorio cronico limitato all'avventizia (vedi Nota).
+- **Nota:** Il reperto è aspecifico e non costituisce di per sé arterite attiva; il suo significato è incerto. Data la segmentarietà della malattia, non si può escludere un coinvolgimento in altri tratti.
+
+Se dopo i nuovi livelli compare l'infiltrato nella media, il referto diventa 6.1 o 6.2.
+
+### 6.4 Reperti suggestivi di danno arterioso guarito
+
+- **Microscopia:** ispessimento intimale fibrocellulare con deposizione di collagene, [interruzioni estese / perdita] della lamina elastica interna (colorazione elastica), fibrosi sostitutiva della media [presente/assente] (tricromica), [neovascolarizzazione], [ispessimento fibroso avventiziale]. Infiltrato infiammatorio [assente / scarso, avventiziale]. Non si osservano cellule giganti.
+- **Diagnosi:** Arteria temporale [dx/sn], biopsia: segmento di arteria muscolare con reperti suggestivi di danno arterioso guarito; negativo per arterite attiva.
+- **Nota:** Il quadro istologico induce a considerare, tra l'altro, anche un pregresso processo arteritico. Differenziale con esiti traumatici o iatrogeni e con alterazioni età-correlate: il significato clinico non è univoco.
+
+### 6.5 Negativo, con ispessimento intimale
+
+- **Microscopia:** ispessimento intimale concentrico senza infiammazione, con lamina elastica interna in gran parte conservata. Media e avventizia preservate. Non si repertano cellule giganti né infiltrato infiammatorio.
+- **Diagnosi:** Arteria temporale [dx/sn], biopsia: segmento di arteria muscolare senza arterite attiva.
+- **Nota:** L'ispessimento intimale è verosimilmente età-correlato. Data la segmentarietà dell'arterite, non si può escludere una skip lesion.
+
+### 6.6 Cellule giganti senza arterite attiva
+
+- **Microscopia:** cellule giganti multinucleate [sede], in assenza di infiltrato infiammatorio della media. [Materiale amorfo eosinofilo / calcificazione lungo la lamina elastica: presente/assente]. Rosso Congo: [positivo/negativo].
+- **Diagnosi:** Arteria temporale [dx/sn], biopsia: segmento di arteria muscolare con cellule giganti in assenza di arterite attiva; [amiloide/calcificazione: presente/assente].
+- **Nota:** Le cellule giganti sono presenti anche in amiloidosi e calcificazioni, e da sole non sono sufficienti per la diagnosi di arterite.
+
+Punto aperto per i colleghi: in 6.2 l'infiltrato linfocitario nella media basta da solo? (decisione D2, §3).
