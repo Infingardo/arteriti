@@ -84,7 +84,7 @@ Eseguibili con `node tests/proposta_scvp.mjs`. Il file **non è agganciato a `np
 | ID | Reperti | `morph` atteso | Categoria (oggi → proposta) | Altro atteso |
 |---|---|---|---|---|
 | T1 | transmurale + linfocitario, solo isto | `attiva` | `bassa_concordanza` → `compatibile` | |
-| T2 | come T1, modalità completa, clinica piena | `attiva` | `non_diagnostica_clinica_suggestiva` (invariata) | |
+| T2 | come T1 con dati clinici pieni | `attiva` | `non_diagnostica_clinica_suggestiva` → `compatibile` (identica a T1) | categoria indipendente dalla clinica |
 | T3 | solo linfocitario (vedi D2) | `attiva` | `negativa` → `compatibile` | |
 | T4 | sole cellule giganti | `giganti_senza_media` | `compatibile` (invariata) | avviso con «amiloid» |
 | T5 | cellule giganti + transmurale | `attiva` | `compatibile` (invariata) | |
