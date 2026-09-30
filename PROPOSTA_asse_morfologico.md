@@ -1,6 +1,6 @@
 # Proposta — asse morfologico «stato della lesione» (SCVP 2023)
 
-Stato: **proposta, nessuna modifica al motore.** Fonti: Nair et al., *Consensus statement on the processing, interpretation and reporting of temporal artery biopsy for arteritis*, Cardiovasc Pathol 2023 (`10.1016/j.carpath.2023.107574`); Taze et al., J Clin Pathol 2024;77:464 (Delphi UK). Di SCVP ho il testo integrale; del Delphi solo il testo principale, non il supplemento con i 67 statement.
+Stato: **proposta (rev. 2: solo morfologia), nessuna modifica al motore.** Fonti: Nair et al., *Consensus statement on the processing, interpretation and reporting of temporal artery biopsy for arteritis*, Cardiovasc Pathol 2023 (`10.1016/j.carpath.2023.107574`); Taze et al., J Clin Pathol 2024;77:464 (Delphi UK). Di SCVP ho il testo integrale; del Delphi solo il testo principale, non il supplemento con i 67 statement.
 
 ## 1. Il problema, misurato sul motore v3.7.0
 
@@ -33,17 +33,24 @@ Campo `morph` calcolato dai soli reperti, con questa precedenza:
 
 Il danno guarito è **descrittivo, senza punteggio**: SCVP segnala assenza di criteri universali, errore con arteriosclerosi fra il 6 e il 64% e riproducibilità scarsa.
 
-### 2.2 Rapporto con le categorie attuali
+### 2.2 Solo morfologia (rev. 2, su indicazione dell'utente)
 
-- **Punteggi e soglie non si toccano** (stessa linea del changelog: dichiarare, non spostare i pali).
-- **Pavimento:** se `morph = attiva`, la categoria non può essere inferiore a `compatibile`. Risolve T1 (da bassa concordanza a compatibile) e mantiene coerenti i due livelli.
+I clinici spesso non forniscono dati; il referto deve reggersi sui reperti e la sintesi clinica la fa il clinico (è anche l'impostazione SCVP: il quesito della biopsia è se c'è arterite attiva). Quindi:
+
+- **La categoria dipende solo dai reperti.** Esce il composito 60/40 e le tre modalità dei dati clinici; resta l'attuale regime «solo istologia» (soglie 55/40/20/10), che è già morfologico.
+- Spariscono le categorie «… clinica suggestiva» (`non_diagnostica_clinica_suggestiva`, `aspecifica_clinica_suggestiva`, `compatibile_clinica_suggestiva`) e i testi sul «driver clinico».
+- **I campi clinici restano, ma non entrano nel calcolo.** Servono come dati riportati nel referto («notizie cliniche fornite: …» / «non fornite») e per gli avvisi interpretativi: età <50, terapia steroidea con durata. La durata degli steroidi è per il Delphi il parametro clinico più importante, quindi la nota resta.
+- **Pavimento:** se `morph = attiva`, la categoria non scende sotto `compatibile` (risolve T1).
 - Il criterio `hasCoreCriteria` resta per «diagnostica» e «altamente suggestiva»; l'asse morfologico si affianca, non lo sostituisce.
-- Le categorie diventano «integrazione clinico-patologica orientativa»; la **riga morfologica è il dato primario** del referto. Questo attenua il punto aperto del changelog (in modalità completa la categoria dipende dalla clinica).
+- **Il dato primario del referto è la riga morfologica**; la categoria diventa un grado di concordanza morfologica, non una diagnosi di GCA. Risolve il punto aperto del changelog (in modalità completa la sola morfologia non poteva arrivare a «diagnostica»).
+- Chiusura fissa del referto: «L'interpretazione nosologica (GCA o altra arterite) è demandata all'integrazione con il quadro clinico».
+
+Cosa si perde, da sapere: un quadro morfologicamente negativo con clinica molto forte non può più uscire come «non diagnostico, clinica suggestiva»; resta negativo + nota su skip lesion e steroidi (già presente). È la conseguenza voluta.
 
 ### 2.3 Nomenclatura (scelta tua)
 
 SCVP raccomanda «arterite attiva» come diagnosi principale ed evita «temporal arteritis» e, nella riga diagnostica, «GCA». Il referto oggi scrive «arterite a cellule giganti (GCA / arterite temporale di Horton)».
-Proposta: opzione `nomenclatura: 'scvp' | 'classica'`; con `scvp` la riga principale è quella della tabella sopra e la compatibilità con GCA passa in commento («da integrare con il quadro clinico»). Consiglio `scvp` come impostazione del referto, perché separa morfologia e nosologia; la tua preferenza prevale.
+Proposta: opzione `nomenclatura: 'scvp' | 'classica'`; con `scvp` la riga principale è quella della tabella sopra e la compatibilità con GCA passa in commento («da integrare con il quadro clinico»). Con la scelta «solo morfologia» (§2.2) `scvp` diventa la scelta coerente: il referto non pone più la diagnosi nosologica. La tua preferenza prevale.
 
 ### 2.4 Testi e correzioni minori
 
@@ -62,16 +69,17 @@ Dal Delphi UK: fibrosi, occlusione luminale, presenza/assenza di iperplasia inti
 
 | # | Decisione | Mia preferenza |
 |---|---|---|
-| D1 | Nomenclatura del referto: `scvp` o `classica` | `scvp` in riga principale, GCA in commento |
+| D1 | Nomenclatura del referto: `scvp` o `classica` | `scvp` in riga principale, GCA in commento (ora più netta) |
 | D2 | L'**infiltrato linfocitario** basta da solo a far dire «arterite attiva»? La voce oggi è «medio-intimale»; un infiltrato solo intimale non è media | sì, ma rinominare la voce in «Infiltrato infiammatorio nella media» |
 | D3 | Pavimento `compatibile` quando `morph = attiva` | sì |
 | D4 | `danno_guarito` solo descrittivo, soglia «≥2 reperti» | sì |
+| D5 | Solo morfologia: eliminare composito e categorie «clinica suggestiva», tenendo i campi clinici come dati riportati e avvisi (§2.2) | sì (indicazione dell'utente, da confermare) |
 
 D2 è il punto più delicato: con la regola attuale T3 (solo infiltrato linfocitario, 5 punti) diventa «arterite attiva» e sale a «compatibile».
 
 ## 4. Casi di test
 
-Eseguibili con `node tests/proposta_scvp.mjs`. Il file **non è agganciato a `npm test`** e oggi segnala «non implementato», perché `morph` non esiste ancora. «Categoria» è la chiave attuale del motore, misurata.
+Eseguibili con `node tests/proposta_scvp.mjs`. Il file **non è agganciato a `npm test`** e oggi segnala «non implementato», perché `morph` non esiste ancora. «Categoria oggi» è la chiave misurata sul motore.
 
 | ID | Reperti | `morph` atteso | Categoria (oggi → proposta) | Altro atteso |
 |---|---|---|---|---|
@@ -81,17 +89,18 @@ Eseguibili con `node tests/proposta_scvp.mjs`. Il file **non è agganciato a `np
 | T4 | sole cellule giganti | `giganti_senza_media` | `compatibile` (invariata) | avviso con «amiloid» |
 | T5 | cellule giganti + transmurale | `attiva` | `compatibile` (invariata) | |
 | T6 | solo avventiziale | `solo_avventiziale` | `negativa` (invariata) | raccomandazione con «livelli» |
-| T7 | come T6, modalità completa, clinica piena | `solo_avventiziale` | `non_diagnostica_clinica_suggestiva` (invariata) | raccomandazione con «livelli» |
+| T7 | come T6 con dati clinici pieni | `solo_avventiziale` | `non_diagnostica_clinica_suggestiva` → `negativa` (identica a T6) | raccomandazione con «livelli» |
 | T8 | intima + neovasc. + elastica focale | `danno_guarito` | `bassa_concordanza` (invariata) | referto con «danno arterioso guarito» e «arterite attiva» negata; niente «alterazioni infiammatorie» |
 | T9 | solo ispessimento intimale | `negativa` | `negativa` (invariata) | commento sul verosimile significato età-correlato |
 | T10 | nessun reperto | `negativa` | `negativa` (invariata) | commento sulle skip lesion |
 | T11 | struttura arteriosa assente | `inadeguato` | `inadeguato` (invariata) | |
 | T12 | transmurale + granulomatosa + vasculite necrotizzante | `attiva` | `compatibile` subordinata (invariata) | con `scvp` la riga principale **non** contiene «GCA/Horton/temporale» |
-| T13 | quadro pieno, modalità completa, clinica piena | `attiva` | `diagnostica` (invariata) | |
+| T13 | quadro pieno con dati clinici pieni | `attiva` | `diagnostica` (invariata) | |
 
 **Proprietà**, da verificare sulle 12 288 combinazioni già usate dalla suite:
 
-- P1 `morph` è identico al variare di modalità, dati clinici e steroidi.
+- P1 `morph` **e categoria** sono identici al variare di modalità, dati clinici e steroidi (solo morfologia).
+- P8 nessuna categoria contiene «clinica suggestiva» e il referto non contiene pesi 60/40 o 80/20.
 - P2 `morph = attiva` implica categoria diversa da `negativa` e `bassa_concordanza`.
 - P3 se `morph ≠ attiva`, la riga principale non dice «arterite attiva» (se non in forma negata).
 - P4 con `nomenclatura = scvp`, la riga principale non contiene «GCA», «Horton» né «temporale».
@@ -103,5 +112,6 @@ Eseguibili con `node tests/proposta_scvp.mjs`. Il file **non è agganciato a `np
 
 - Nuovo: calcolo di `morph` in `engine.js`, riga principale nel referto, opzione di nomenclatura, pavimento su `attiva`, avviso per `giganti_senza_media`, testi della §2.4.
 - La pagina mostra `morph` come dato primario, sopra la categoria. D2 cambia l'etichetta di una voce.
-- Test esistenti: stimo che si modifichino solo quelli che fissano i testi del referto («arterite a cellule giganti», skip lesion 10–15%, nota steroidi) e l'eventuale caso che assume `bassa_concordanza` per un quadro con infiltrato della media. Lo verifico al momento dell'implementazione, non prima.
+- Con la rev. 2 si riducono le chiavi di categoria (da 9 a 6 raggiungibili) e l'esplorazione dei 12 288 casi si semplifica: i campi clinici non cambiano più l'esito.
+- Test esistenti: stimo che si modifichino quelli sui pesi/modalità clinica, oltre a quelli che fissano i testi del referto («arterite a cellule giganti», skip lesion 10–15%, nota steroidi) e l'eventuale caso che assume `bassa_concordanza` per un quadro con infiltrato della media. Lo verifico al momento dell'implementazione, non prima.
 - Versione: sarebbe una 3.8.0, con changelog.

@@ -25,12 +25,12 @@ const testoAvvisi = r => r.validationWarnings.map(w => w.text).join(' ');
 // [id, stato, morph atteso, categoria attesa (chiave), verifica aggiuntiva opzionale]
 const CASI = [
   ['T1 transmurale + linfocitario',        S({ maj:{transmuralInflammation:true}, min:{lymphocyticInfiltrate:true} }), 'attiva', 'compatibile'],
-  ['T2 come T1, completa, clinica piena',  S({ mode:'full', maj:{transmuralInflammation:true}, min:{lymphocyticInfiltrate:true}, cli:CLIN }), 'attiva', 'non_diagnostica_clinica_suggestiva'],
+  ['T2 come T1 con dati clinici pieni',     S({ mode:'full', maj:{transmuralInflammation:true}, min:{lymphocyticInfiltrate:true}, cli:CLIN }), 'attiva', 'compatibile'],
   ['T3 solo linfocitario (decisione D2)',  S({ min:{lymphocyticInfiltrate:true} }), 'attiva', 'compatibile'],
   ['T4 sole cellule giganti',              S({ maj:{giantCells:true} }), 'giganti_senza_media', 'compatibile', r => /amiloid/i.test(testoAvvisi(r))],
   ['T5 cellule giganti + transmurale',     S({ maj:{giantCells:true, transmuralInflammation:true} }), 'attiva', 'compatibile'],
   ['T6 solo avventiziale',                 S({ min:{adventitialInflammation:true} }), 'solo_avventiziale', 'negativa', r => /livelli/i.test(r.diagnosis.recommendation)],
-  ['T7 come T6, completa, clinica piena',  S({ mode:'full', min:{adventitialInflammation:true}, cli:CLIN }), 'solo_avventiziale', 'non_diagnostica_clinica_suggestiva', r => /livelli/i.test(r.diagnosis.recommendation)],
+  ['T7 come T6 con dati clinici pieni',     S({ mode:'full', min:{adventitialInflammation:true}, cli:CLIN }), 'solo_avventiziale', 'negativa', r => /livelli/i.test(r.diagnosis.recommendation)],
   ['T8 danno guarito',                     S({ min:{intimalThickening:true, neovascularization:true, focalElasticFragmentation:true} }), 'danno_guarito', 'bassa_concordanza',
      r => /danno arterioso guarito/i.test(r.referto) && /negativo per arterite attiva/i.test(r.referto) && !/alterazioni infiammatorie/i.test(r.referto)],
   ['T9 solo ispessimento intimale',        S({ min:{intimalThickening:true} }), 'negativa', 'negativa', r => /et[àa]/i.test(r.referto)],
