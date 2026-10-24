@@ -1,7 +1,50 @@
-# Changelog — Checklist morfologico-clinica GCA
+# Changelog — Checklist per la biopsia dell'arteria temporale
 
-## Non rilasciato
-- **Soglia di adeguatezza allineata alla pagina.** La pagina indica «ottimale ≥10 mm, minimo 6 sezioni», ma il motore dichiarava «adeguato» un frammento di 5–9 mm (soglia <5 mm). Ora «subottimale» = <10 mm o <6 sezioni. Nessun effetto su punteggio e categoria: cambiano solo badge e avviso.
+## v4.0.0 (Ottobre 2026) — riallineamento al consensus SCVP 2023
+
+Cambio di impianto, non retrocompatibile negli output. Fonte: Nair V, Fishbein GA, Padera R, et al. Cardiovasc Pathol 2023;67:107574. Piano e decisioni: `docs/PIANO_riallineamento_consensus_SCVP2023.md`.
+
+**Terminologia nuova dei referti: valida dal 24 ottobre 2026. I referti emessi con v3.x restano scritti con la vecchia terminologia.**
+
+### Cosa cambia
+- **La categoria dipende solo dall'istologia (D1).** Una domanda decide: la media è infiammata (asse o ramo)? Sì → A, *arterite attiva*, con o senza cellule giganti. Poi B (infiammazione extramediale), C (aspetti suggestivi di esiti di danno arterioso), D (fibrosi intimale), E (negativo). Struttura assente → inadeguato; infiltrato della media non valutato → nessuna conclusione.
+- **Eliminati lo score istologico (0-81), lo score clinico, il composito e i pesi 60/40-80/20 (D2).** La clinica resta come pannello di contesto senza numero: nota sul cortisone oltre 7 giorni («come da notizie cliniche») e avviso per età <50 anni.
+- **Terminologia (D3).** Nel referto non compaiono «arterite temporale», «Horton», «atipica»; «arterite a cellule giganti» non compare nella riga di diagnosi (resta solo nella nota: la classificazione è clinica).
+- **Adeguatezza (D4).** Protocollo del consensus: in toto, sezioni a 1-2 mm, almeno 5 livelli, elastiche. Non conforme → criticità, non cambia la categoria. La lunghezza è un dato descritto; la soglia <10 mm è stata tolta (nessuna fonte).
+- **Tolte le raccomandazioni cliniche dal referto (D5):** eco-Doppler, PET-TC, biopsia controlaterale, nuovo prelievo, blocco «Limiti interpretativi».
+- **Tolte le cifre senza fonte (D6):** «skip lesion 10-15%», «variante senza giganti 20-30%», «7-14 gg», «3-5 gg», rapporto CD4/CD8 «>2:1».
+- **Tre stati per ogni reperto** (non valutato / assente / presente): un campo non compilato non vale «assente». Se solo la media è valutata come non infiammata, E/D/B/C escono con la criticità «classe provvisoria».
+- **Mantenuti**: segnali d'allarme (categoria subordinata alla DD), raccomandazioni IHC come supporto (riscritte senza composito, mai criterio), importazione dei dati clinici (ora solo contesto). I suggerimenti IHC non dipendono dalla clinica: il trigger «cortisone oltre 7 giorni» ipotizzato nel piano operativo è stato tolto per coerenza con D2.
+- Il referto riporta anche i reperti della media inseriti quando la media non è infiammata o non è valutata (epitelioidi, giganti); reperti di DD con media non infiammata generano una criticità (aggiunta dopo la review: da approvare o togliere).
+- Rami collaterali non valutati → criticità «classe provvisoria» (potrebbero cambiare la classe in A). Livelli non interi non vengono troncati; i giorni di cortisone decimali non perdono la frazione.
+- Bibliografia: aggiunte 11 referenze del consensus (voci 13, 14, 21, 24, 33, 40, 50, 56, 58, 59, 60), trascritte dall'elenco del PDF; testate per presenza.
+- **Interfaccia: la checklist è ora la pagina predefinita.** `index.html` riprende la grafica della checklist interattiva (reperti a sinistra, macroscopia/microscopia/diagnosi/nota a destra, pulsante «Copia referto»), ma usa `engine.js`: restano criticità, avvisi, segnali d'allarme, IHC e il pannello clinico di contesto. Niente più React, Babel, Tailwind né `vendor/` (rimossa); font di sistema al posto di IBM Plex; il testo del referto non è più modificabile a mano nella pagina (si copia e si rifinisce altrove). «Congo red» → «rosso Congo».
+- Aggiunto il campo descrittivo «Lato» (destra/sinistra), come nella checklist di riferimento: compare nella macroscopia («Arteria temporale destra»), non incide sulla categoria. Non è nel piano §3: aggiunta su richiesta.
+- Rimosso l'ex ramo «Valutazione non affidabile»: l'elastica interna è una scelta unica, l'incoerenza diffusa/focale non esiste più.
+
+### Prima e dopo: i sei casi del piano
+| Caso | v3.7.0 | v4.0.0 |
+|---|---|---|
+| Infiammazione transmurale, senza giganti (solo istologia) | Bassa concordanza, alterazioni aspecifiche | **A** — Arterite attiva |
+| Infiltrato linfocitario medio-intimale isolato (solo istologia) | Biopsia negativa / non conclusiva | **A** — Arterite attiva |
+| Lo stesso, con clinica piena | Istologia non diagnostica — clinica suggestiva («compatibile con GCA») | **A** — Arterite attiva (identica: la clinica non incide) |
+| Solo infiammazione avventiziale, clinica piena | Istologia non diagnostica — clinica suggestiva («compatibile con GCA») | **B** — Segmento di arteria muscolare senza arterite attiva. Infiammazione cronica avventiziale e periavventiziale (+ criticità: livelli più profondi) |
+| Frammentazione elastica + ispessimento intimale + neovasi, senza infiltrato | Bassa concordanza | **C** (con fibrosi della media) — aspetti suggestivi di esiti di danno arterioso; senza fibrosi della media: D/E |
+| Istologia del tutto negativa, clinica piena | «Il quadro istologico è compatibile con arterite a cellule giganti» | **E** — Segmento di arteria muscolare negativo per arterite |
+
+Il sesto caso era un difetto a prescindere dal consensus: un referto istologico che affermava compatibilità senza alcun reperto istologico.
+
+### Dati del consensus
+Discordanza fra biopsie bilaterali 4,4-13% nelle serie, 5,5% nella revisione di 1935 casi: riportati dal piano, non verificati sul testo del consensus e non usati nel motore. La soglia dei 7 giorni dall'inizio del cortisone è usata solo nella nota «come da notizie cliniche». Le soglie IgG4 (>50/HPF, >40%) sono i criteri aortici della Tab. 2 del consensus, dichiarati come tali nelle criticità.
+
+### Infrastruttura
+- `engine.js` riscritto: `classify()`, `CONCLUSIONI` per chiave (A-E, inadeguato, incompleto), `criticita()`, `avvisi()`, `generateReferto()`; `runCase()` resta l'unico punto di ingresso di pagina e test.
+- `tests/run.mjs` riscritto prima del motore (falliva per intero su v3.7.0): un input per ogni classe, i sei casi di regressione, classificazione verificata contro un oracolo indipendente su 2 125 764 combinazioni, sette invarianti anche su un campione di 92 451 referti completi. 239 asserzioni.
+
+### Aperto
+- Revisioni: subagente Claude (non cross-model) e Codex con `gpt-6-sol` (il modello di default `gpt-6.1-sol` non è accettato dall'account ChatGPT).
+- Il piano non prevede C da sola elastica interrotta (senza fibrosi della media): scelta mantenuta come da piano §4.
+- `bigino_gca_clinici.html`, `flowchart_clinici.html`, `richiesta_biopsia_temporale.html` non sono ancora allineati (Horton, cifre, raccomandazioni): passaggio separato.
 
 ## v3.7.0 (Settembre 2026) — «non diagnostica» non deve uscire come «diagnostica»
 
@@ -82,6 +125,7 @@ che ogni chiave raggiungibile abbia una conclusione e che la mappa non abbia voc
   raggiungibile invece che dichiarato a mano.
 
 ### Aperto
+- Revisioni: subagente Claude (non cross-model) e Codex con `gpt-6-sol` (il modello di default `gpt-6.1-sol` non è accettato dall'account ChatGPT).
 In modalità «dati completi» la sola morfologia arriva al massimo a 81 × 0,6 = 49, contro
 una soglia diagnostica di 70: senza almeno 46 punti clinici nessun quadro morfologico,
 per quanto conclusivo, raggiunge la categoria diagnostica. Si può sostenere che sia
