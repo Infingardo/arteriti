@@ -193,6 +193,59 @@ T('età <50: avviso di DD, fuori dal referto', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════
+section('tre stati nel testo, confini e mutanti');
+T('un campo non valutato non compare nel referto come presente o assente', () => {
+  const nv = runCase(S({ adeq:{ lunghezza:'', livelli:'6', inToto:undefined, elastiche:undefined, livelliAggiuntivi:undefined }, r:{ m_inf:'a' } }));
+  check('inToto non valutato: non scrive «in toto»', !/in toto/.test(nv.referto), nv.macro);
+  check('elastiche non valutate: non scrive «colorazione per le elastiche»', !/colorazione per le elastiche/.test(nv.referto), nv.micro);
+  check('livelli aggiuntivi non valutati: non li scrive', !/livelli aggiuntivi/.test(nv.referto), nv.micro);
+  check('avventizia non valutata: non scrive «senza infiltrato»', !/Avventizia e periavventizia senza/.test(nv.referto), nv.micro);
+  check('intima non valutata: non scrive «Intima senza»', !/Intima senza/.test(nv.referto), nv.micro);
+  check('nessuna IHC spuntata: nessuna riga IHC', !/Immunoistochimica eseguita/.test(nv.referto));
+  const parz = runCase(S({ r:{ m_inf:'a' }, ihc:{ cd4:true } }));
+  check('una sola IHC: elenca solo quella', /Immunoistochimica eseguita: CD4\./.test(parz.referto), parz.referto);
+});
+T('classe C richiede elastica interrotta e fibrosi della media', () => {
+  eq('fibrosi media senza elastica valutata: non C', runCase(S({ r:{ m_inf:'a', m_fib:'p' } })).classe === 'C', false);
+  eq('fibrosi media con elastica conservata: non C', runCase(S({ r:{ m_inf:'a', m_fib:'p' }, iel:'c' })).classe === 'C', false);
+  eq('B prima di D: intima fibrotica + avventizia infiammata → B', runCase(S({ r:{ m_inf:'a', i_fib:'p', a_inf:'p' } })).classe, 'B');
+  eq('ispessimento fibroso avventiziale da solo non è D', runCase(S({ r:{ ...NEG, a_fib:'p' } })).classe, 'E');
+});
+T('amiloide solo con reperto e Congo', () => {
+  check('Congo positivo senza materiale amorfo: niente amiloide', !/amiloide/.test(runCase(S({ r:{ ...NEG }, congo:'p' })).diagnosi));
+});
+T('età e cortisone: confini', () => {
+  check('49 anni: avviso', runCase(S({ r:{ ...NEG }, cli:{ eta:'49' } })).avvisi.length === 1);
+  check('50 anni: nessun avviso', runCase(S({ r:{ ...NEG }, cli:{ eta:'50' } })).avvisi.length === 0);
+  check('età 0 o negativa: nessun avviso', runCase(S({ r:{ ...NEG }, cli:{ eta:'0' } })).avvisi.length === 0 && runCase(S({ r:{ ...NEG }, cli:{ eta:'-3' } })).avvisi.length === 0);
+  check('cortisone «no» con giorni compilati: nessuna nota', !/cortisone/.test(runCase(S({ r:{ ...NEG }, cli:{ cortisone:false, giorniCortisone:'12' } })).nota));
+  check('8 giorni: nota', /cortisone/.test(runCase(S({ r:{ ...NEG }, cli:{ cortisone:true, giorniCortisone:'8' } })).nota));
+});
+T('incompleto non è subordinato', () => {
+  const r = runCase(S({ r:{ i_inf:'p' }, rf:{ vasculiteNecrotizzante:true } }));
+  eq('incompleto con segnale d allarme', r.classe, 'incompleto');
+  eq('non subordinato', r.subordinata, false);
+});
+T('reperti inseriti non spariscono dal testo', () => {
+  check('epitelioidi con media non infiammata compaiono', /istiociti epitelioidi/.test(runCase(S({ r:{ m_inf:'a', m_epi:'p' } })).micro));
+  const inc = runCase(S({ r:{ m_gig:'p', m_epi:'p' } }));
+  check('giganti ed epitelioidi con media non valutata compaiono', /cellule giganti/.test(inc.micro) && /istiociti epitelioidi/.test(inc.micro), inc.micro);
+  const dd = runCase(S({ r:{ ...NEG, m_nec:'p', m_eos:'p', g_gran:'p' }, iel:'c' }));
+  eq('DD senza media infiammata: classe E', dd.classe, 'E');
+  check('criticità: reperti di DD con media non infiammata', dd.criticita.some(c => /diagnosi differenziale presenti/.test(c) && /necrosi fibrinoide/.test(c)), dd.criticita.join('|'));
+  check('e la criticità non è nel referto', !dd.referto.includes('Reperti di diagnosi differenziale presenti'));
+});
+T('valori impossibili', () => {
+  const neg = runCase(S({ adeq:{ lunghezza:'-5', livelli:'-3' }, r:{ ...NEG } }));
+  check('lunghezza negativa: placeholder, non «-5 mm»', !/-5/.test(neg.macro), neg.macro);
+  check('livelli negativi: nessuna frase «Esame su»', !/Esame su -/.test(neg.micro), neg.micro);
+  check('lunghezza decimale con la virgola', /12,5 mm/.test(runCase(S({ adeq:{ lunghezza:'12.5' }, r:{ ...NEG } })).macro));
+  check('struttura assente: conformità non applicabile', runCase(S({ adeq:{ struttura:false } })).adeguatezza.conforme === null);
+  const a = runCase(S({ adeq:{ livelli:'1' }, r:{ m_inf:'p' } }));
+  check('in A la criticità sui livelli non parla di negatività', a.criticita.some(c => /Meno di 5 livelli/.test(c)) && !a.criticita.some(c => /negatività/.test(c)), a.criticita.join('|'));
+});
+
+// ══════════════════════════════════════════════════════════════════════════
 section('adeguatezza e criticità (separate dal testo del referto)');
 T('criteri di adeguatezza del consensus', () => {
   const ok = runCase(S({ adeq:{ livelli:'5', inToto:true, elastiche:true }, r:{ ...NEG } }));
@@ -301,12 +354,25 @@ T('nessuna raccomandazione clinica nel referto', () => {
 section('esplorazione esaustiva');
 T('esplorazione esaustiva', () => {
   const tri = [undefined, 'a', 'p'];
-  const dims = ['m_inf','m_gig','m_epi','m_nec','m_fib','i_fib','i_inf','a_inf','a_vv'];
+  const dims = ['m_inf','m_gig','m_epi','m_nec','m_fib','i_fib','i_inf','a_inf','a_vv','a_fib'];
   const ielV = ['c','f',undefined], ramiV = [undefined,'a','n','i'], strV = [true,false,undefined];
   const CLIN = [{}, CLIN_PIENA, { eta:'35', cefalea:true, ves:'60' }, { ...CLIN_PIENA, cortisone:true, giorniCortisone:'12' }];
   const chiavi = new Set();
   let casi = 0, cli = 0, cliniciCambiano = 0, nessunReperto = 0, mediaMancata = 0, giganteA = 0, vietati = 0, critNelReferto = 0,
       senzaConclusione = 0, ihcCambia = 0, mancaDiagnosi = 0;
+  // Oracolo indipendente: la regola del §4 del piano riscritta qui, senza riusare il motore.
+  const oracolo = (r, iel, rami, str) => {
+    if (str === false) return 'inadeguato';
+    if (r.m_inf === 'p' || rami === 'i') return 'A';
+    if (r.m_inf !== 'a') return 'incompleto';
+    if (iel === 'f' && r.m_fib === 'p') return 'C';
+    if (r.a_inf === 'p' || r.a_vv === 'p' || r.i_inf === 'p') return 'B';
+    if (r.i_fib === 'p') return 'D';
+    return 'E';
+  };
+  let divergeOracolo = 0, prima = 0, recoCliniche = 0, recoRegex = 0, cifre = 0;
+  const RECO = /Doppler|\bPET|ecograf|controlaterale|prelievo|raccomand|consigli|si suggeris/i;
+  let seed = 12345; const rnd = n => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
   const N = Math.pow(3, dims.length);
   const t0 = Date.now();
   for (let i = 0; i < N; i++) {
@@ -316,6 +382,7 @@ T('esplorazione esaustiva', () => {
       const st = S({ r, iel, rami, adeq:{ struttura:str } });
       const k = classify(st); casi++;
       chiavi.add(k.classe);
+      if (k.classe !== oracolo(r, iel, rami, str)) divergeOracolo++;
       if (CONCLUSIONI[k.classe] === undefined) senzaConclusione++;
       const mediaInfiammata = r.m_inf === 'p' || rami === 'i';
       if (str === false) { if (k.classe !== 'inadeguato') mediaMancata++; }
@@ -326,11 +393,23 @@ T('esplorazione esaustiva', () => {
         if (!RKEYS.some(c => r[c] === 'p') && rami !== 'i' && k.classe === 'A') nessunReperto++;
       }
       if ((i + iel_idx(iel) + rami_idx(rami)) % 23 === 0 || i === N - 1) {   // campione del referto completo
-        const out = runCase(st); cli++;
+        // variazione deterministica delle variabili non esplorate: DD, calcificazioni, IgG4, Congo, segnali, adeguatezza
+        const extra = { ...r };
+        ['m_eos','m_pla','g_gran','g_neu','g_amy','g_tra','a_neo'].forEach(kk => { extra[kk] = tri[rnd(3)]; });
+        const st2 = S({ r:extra, iel, rami, adeq:{ struttura:str, livelli:['', '3', '6'][rnd(3)], inToto:tri[rnd(3)] === 'p' ? true : [undefined, false][rnd(2)], elastiche:[undefined, true, false][rnd(3)], livelliAggiuntivi:[undefined, true, false][rnd(3)] },
+          calc:[undefined,'a','i','m','b'][rnd(5)], congo:[undefined,'n','p','x'][rnd(4)], igg4:[undefined,'n','p','x'][rnd(4)],
+          rf:{ linfoidiAtipiche:rnd(4) === 0, granulomiNecrotizzanti:rnd(4) === 0, vasculiteNecrotizzante:rnd(4) === 0 },
+          cli:{ eta:['', '35', '50', '72'][rnd(4)], cortisone:[undefined, true, false][rnd(3)], giorniCortisone:['', '3', '10'][rnd(3)] } });
+        const out = runCase(st2); cli++;
+        const out0 = runCase(st);
+        if (RECO.test(out.referto)) recoRegex++;
+        if (!/IgG4/.test(out.referto) && /%/.test(out.referto)) cifre++;
+        if (JSON.stringify(out.ihcRecs) !== JSON.stringify(runCase({ ...st2, clinica:{ eta:'', cortisone:undefined, giorniCortisone:'' } }).ihcRecs)) recoCliniche++;
+        if (out.classe !== classify(st2).classe || out0.classe !== k.classe) prima++;
         if (FORBIDDEN.test(out.referto) || /arterite a cellule giganti|GCA/i.test(rigaDiagnosi(out.referto))) vietati++;
         if (out.criticita.some(c => out.referto.includes(c.slice(0, 40)))) critNelReferto++;
         if (!rigaDiagnosi(out.referto)) mancaDiagnosi++;
-        if (!RKEYS.some(c => r[c] === 'p') && rami !== 'i' && /compatibil/i.test(out.referto)) nessunReperto++;
+        if (!RKEYS.some(c => extra[c] === 'p') && rami !== 'i' && /compatibil/i.test(out.referto)) nessunReperto++;
         for (const prof of CLIN) {
           const y = classify(S({ r, iel, rami, adeq:{ struttura:str }, cli:prof }));
           if (y.classe !== k.classe || y.diagnosi !== k.diagnosi) { cliniciCambiano++; }
@@ -353,6 +432,11 @@ T('esplorazione esaustiva', () => {
   eq('7. le criticità non compaiono nel testo del referto', critNelReferto, 0);
   eq('ogni referto ha una riga di diagnosi', mancaDiagnosi, 0);
   eq('IHC eseguita: mai un effetto sulla categoria', ihcCambia, 0);
+  eq('la classificazione coincide con la regola del §4 su tutto lo spazio esplorato', divergeOracolo, 0);
+  eq('nessuna raccomandazione clinica nel referto (campione ampio, variabili non esplorate incluse)', recoRegex, 0);
+  eq('nessuna percentuale nel referto fuori dal blocco IgG4', cifre, 0);
+  eq('la clinica non cambia nemmeno i suggerimenti IHC', recoCliniche, 0);
+  eq('la classificazione non dipende dalle variabili non esplorate', prima, 0);
 });
 function iel_idx(v) { return v === 'c' ? 0 : v === 'f' ? 1 : 2; }
 function rami_idx(v) { return v === undefined ? 0 : v === 'a' ? 1 : v === 'n' ? 2 : 3; }

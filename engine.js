@@ -39,7 +39,7 @@ const sp = a => a.filter(Boolean).join(' ');
 const extramediale = st => isP(st, 'a_inf') || isP(st, 'a_vv') || isP(st, 'i_inf');
 const mediaInfiammata = st => isP(st, 'm_inf') || st.rami === 'i';
 const strutturaAssente = st => !!st.adeq && st.adeq.struttura === false;
-const livelli = st => { const n = parseInt(st.adeq && st.adeq.livelli, 10); return isNaN(n) ? null : n; };
+const livelli = st => { const n = parseInt(st.adeq && st.adeq.livelli, 10); return isNaN(n) || n < 0 ? null : n; };
 const giorniCortisone = st => { const n = parseInt(st.clinica && st.clinica.giorniCortisone, 10); return isNaN(n) ? null : n; };
 const haSegnaliAllarme = st => !!st.redFlags && (st.redFlags.linfoidiAtipiche || st.redFlags.granulomiNecrotizzanti || st.redFlags.vasculiteNecrotizzante);
 
@@ -84,7 +84,8 @@ function adeguatezza(st) {
   const n = livelli(st);
   const nega = (n !== null && n < 5) || a.inToto === false || a.elastiche === false;
   const nonNoto = n === null || a.inToto === undefined || a.elastiche === undefined;
-  return { livelli: n, conforme: nega ? false : nonNoto ? null : true };
+  // con struttura assente il campione non è valutabile: la conformità non si applica
+  return { livelli: n, conforme: a.struttura === false ? null : nega ? false : nonNoto ? null : true };
 }
 
 // ── elenco DD per la nota di A ────────────────────────────────────────────────
@@ -100,7 +101,8 @@ function ddList(st) {
 
 // ── macroscopia / microscopia ────────────────────────────────────────────────
 function macro(st) {
-  const L = (st.adeq && String(st.adeq.lunghezza || '').trim()) || '[n]';
+  const lung = parseFloat(st.adeq && st.adeq.lunghezza);
+  const L = (!isNaN(lung) && lung > 0) ? String(lung).replace('.', ',') : '[n]';
   let t = 'Arteria temporale: segmento di ' + L + ' mm di lunghezza';
   if (st.adeq && st.adeq.inToto === true) t += ', incluso in toto e sezionato a 1-2 mm dopo la processazione';
   return t + '.';
@@ -134,6 +136,9 @@ function micro(st) {
   if (isP(st, 'm_nec')) med.push('necrosi fibrinoide');
   if (isP(st, 'm_fib')) med.push('fibrosi sostitutiva' + (grado(st, 'm_fib', 1) ? ' ' + grado(st, 'm_fib', 1) : ''));
   if (st.calc === 'm' || st.calc === 'b') med.push('calcificazioni');
+  // reperti inseriti ma non descritti altrove: non devono sparire dal testo
+  if (isP(st, 'm_epi') && !isP(st, 'm_inf')) med.push('istiociti epitelioidi');
+  if (isP(st, 'm_gig') && (!st.r || st.r.m_inf === undefined)) med.push('cellule giganti');
   if (isP(st, 'm_eos')) med.push('eosinofili');
   if (isP(st, 'm_pla')) med.push('plasmacellule');
   if (med.length) m.push('Nella media: ' + join(med) + '.');
@@ -201,7 +206,7 @@ function criticita(st, classe) {
   if (classe === 'inadeguato') return [];
   const w = [];
   const n = livelli(st);
-  if (n !== null && n < 5) w.push('Meno di 5 livelli (il consensus indica almeno 5): la negatività è meno affidabile.');
+  if (n !== null && n < 5) w.push('Meno di 5 livelli (il consensus indica almeno 5)' + (classe === 'A' ? '.' : ': la negatività è meno affidabile.'));
   if (st.adeq && st.adeq.elastiche === false) w.push('Colorazione per le elastiche non eseguita: elastica interna e fibrosi della media non valutabili in modo conforme.');
   if (st.adeq && st.adeq.inToto === false) w.push('Il campione non è stato processato secondo il protocollo (in toto, sezionato dopo la processazione).');
   if (classe === 'incompleto') return w;
@@ -209,13 +214,15 @@ function criticita(st, classe) {
   const add = st.adeq && st.adeq.livelliAggiuntivi === true;
   if (classe === 'B' && !add) w.push('Infiammazione solo extramediale senza livelli aggiuntivi dichiarati: eseguire livelli più profondi prima di chiudere.');
   if (classe === 'C' && extramediale(st) && !add) w.push('Esiti di danno arterioso con infiammazione extramediale: eseguire livelli più profondi per escludere il coinvolgimento della media.');
-  if (st.igg4 === 'p' && (!st.igg4Hpf || !st.igg4Rapporto)) w.push('IgG4 positiva: completare conta IgG4+/HPF e rapporto IgG4/IgG (soglie: oltre 50/HPF e oltre 40%).');
+  if (st.igg4 === 'p' && (!st.igg4Hpf || !st.igg4Rapporto)) w.push('IgG4 positiva: completare conta IgG4+/HPF e rapporto IgG4/IgG (soglie: oltre 50/HPF e oltre 40%, dalla Tab. 2 del consensus, criteri aortici).');
   if (isP(st, 'g_amy') && st.congo !== 'p' && st.congo !== 'n') w.push('Materiale amorfo senza Congo red: eseguire la colorazione.');
   if (isP(st, 'g_amy') && st.congo === 'n') w.push('Materiale amorfo con Congo red negativo: riconsiderare il reperto.');
-  if (isP(st, 'm_pla') && st.igg4 !== 'p' && st.igg4 !== 'n') w.push('Plasmacellule senza IgG4 immunoistochimica: da eseguire se si considera IgG4-RD (soglia: oltre 50 IgG4+/HPF e rapporto IgG4/IgG oltre 40%).');
+  if (isP(st, 'm_pla') && st.igg4 !== 'p' && st.igg4 !== 'n') w.push('Plasmacellule senza IgG4 immunoistochimica: da eseguire se si considera IgG4-RD (soglie: oltre 50 IgG4+/HPF e rapporto IgG4/IgG oltre 40%, dalla Tab. 2 del consensus, criteri aortici).');
   if (classe === 'A' && st.rami === 'i' && !isP(st, 'm_inf')) w.push('Media interessata solo nel ramo collaterale: per il consensus basta per arterite attiva.');
   if (st.clinica && st.clinica.cortisone === true && giorniCortisone(st) === null) w.push('Cortisone indicato ma durata non specificata: nessuna nota sul timing della biopsia.');
   if (['B', 'C', 'D', 'E'].includes(classe)) {
+    const dd = [['m_nec', 'necrosi fibrinoide'], ['m_eos', 'eosinofili'], ['m_pla', 'plasmacellule'], ['g_gran', 'granulomi'], ['g_neu', 'neutrofili']].filter(q => isP(st, q[0])).map(q => q[1]);
+    if (dd.length) w.push('Reperti di diagnosi differenziale presenti (' + dd.join(', ') + ') con media non infiammata: verificare l’infiltrato della media e i livelli.');
     const nv = ['i_fib', 'i_inf', 'a_inf', 'a_vv', 'm_fib'].some(k => !st.r || st.r[k] === undefined) || st.iel === undefined;
     if (nv) w.push('Campi non valutati (intima, avventizia, vasa vasorum, fibrosi della media, elastica interna): classe provvisoria.');
   }
@@ -226,8 +233,8 @@ function criticita(st, classe) {
 function avvisi(st) {
   const a = [];
   const eta = parseInt(st.clinica && st.clinica.eta, 10);
-  if (!isNaN(eta) && eta < 50)
-    a.push(`Età <50 anni (${eta} aa): la GCA è eccezionale sotto i 50 anni (criteri ACR/EULAR 2022: età ≥50 requisito di classificazione). Un quadro di arterite attiva in paziente giovane impone diagnosi differenziale prioritaria: arterite di Takayasu, vasculite ANCA-associata, arterite infettiva, sarcoidosi vascolare, vasculite correlata a IgG4.`);
+  if (!isNaN(eta) && eta > 0 && eta < 50)
+    a.push(`Età <50 anni (${eta} aa): la GCA è eccezionale sotto i 50 anni (criteri ACR/EULAR 2022: età ≥50 requisito di classificazione). In caso di arterite attiva, in un paziente giovane la diagnosi differenziale è prioritaria: arterite di Takayasu, vasculite ANCA-associata, arterite infettiva, sarcoidosi vascolare, vasculite correlata a IgG4.`);
   return a;
 }
 
@@ -236,8 +243,6 @@ function getIhcRecommendations(st, classe) {
   const recs = [];
   const m = st.ihc || {};
   if (classe === 'inadeguato' || classe === 'incompleto') return recs;
-  const g = giorniCortisone(st);
-  const oltre7 = st.clinica && st.clinica.cortisone === true && g !== null && g > 7;
   if (!m.cd68) {
     const documentato = isP(st, 'm_gig') || isP(st, 'm_epi');
     recs.push(classe !== 'A' || !documentato ? {
@@ -249,7 +254,7 @@ function getIhcRecommendations(st, classe) {
     });
   }
   if (!m.cd4 && !m.cd8) {
-    if (classe === 'B' || classe === 'C' || oltre7)
+    if (classe === 'B' || classe === 'C')
       recs.push({ marker: 'CD4 + CD8', priority: 'ALTA', color: 'text-red-600',
         reason: 'La distribuzione compartimentale CD4/CD8 (pattern descritto: CD4 prevalente in media, CD8 in avventizia) può supportare la diagnosi differenziale. Non specifica se isolata.' });
   } else if (m.cd4 && !m.cd8) {
