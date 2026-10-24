@@ -216,6 +216,12 @@ function criticita(st, classe) {
   if (classe === 'B' && !add) w.push('Infiammazione solo extramediale senza livelli aggiuntivi dichiarati: eseguire livelli più profondi prima di chiudere.');
   if (classe === 'C' && extramediale(st) && !add) w.push('Esiti di danno arterioso con infiammazione extramediale: eseguire livelli più profondi per escludere il coinvolgimento della media.');
   if (st.igg4 === 'p' && (!st.igg4Hpf || !st.igg4Rapporto)) w.push('IgG4 positiva: completare conta IgG4+/HPF e rapporto IgG4/IgG (soglie: oltre 50/HPF e oltre 40%, dalla Tab. 2 del consensus, criteri aortici).');
+  if (st.igg4 === 'p') {
+    const hpf = parseFloat(st.igg4Hpf), rap = parseFloat(st.igg4Rapporto);
+    if ((st.igg4Hpf !== '' && st.igg4Hpf !== undefined && (isNaN(hpf) || hpf < 0)) || (st.igg4Rapporto !== '' && st.igg4Rapporto !== undefined && (isNaN(rap) || rap < 0 || rap > 100)))
+      w.push('Valori IgG4 non plausibili (conta negativa o rapporto IgG4/IgG fuori da 0-100%): ricontrollare prima di usare il testo.');
+  }
+  if (isP(st, 'm_epi') && isA(st, 'm_inf')) w.push('Istiociti epitelioidi nella media con media segnata priva di infiltrato infiammatorio: reperti incoerenti, ricontrollare.');
   if (isP(st, 'g_amy') && st.congo !== 'p' && st.congo !== 'n') w.push('Materiale amorfo senza Congo red: eseguire la colorazione.');
   if (isP(st, 'g_amy') && st.congo === 'n') w.push('Materiale amorfo con Congo red negativo: riconsiderare il reperto.');
   if (isP(st, 'm_pla') && st.igg4 !== 'p' && st.igg4 !== 'n') w.push('Plasmacellule senza IgG4 immunoistochimica: da eseguire se si considera IgG4-RD (soglie: oltre 50 IgG4+/HPF e rapporto IgG4/IgG oltre 40%, dalla Tab. 2 del consensus, criteri aortici).');

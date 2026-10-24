@@ -220,6 +220,14 @@ T('rami non valutati e numeri non interi', () => {
   check('cortisone 7.9 giorni: nota «oltre 7 giorni»', /oltre 7 giorni/.test(runCase(S({ r:{ ...NEG }, cli:{ cortisone:true, giorniCortisone:'7.9' } })).nota));
   check('cortisone 7 giorni esatti: nessuna nota', !/oltre 7/.test(runCase(S({ r:{ ...NEG }, cli:{ cortisone:true, giorniCortisone:'7' } })).nota));
 });
+T('incoerenze di input: criticità, mai testo', () => {
+  const ig = runCase(S({ r:{ ...NEG }, iel:'c', igg4:'p', igg4Hpf:'-2', igg4Rapporto:'150' }));
+  check('IgG4 non plausibile: criticità', ig.criticita.some(c => /IgG4 non plausibili/.test(c)), ig.criticita.join('|'));
+  check('IgG4 plausibile: nessuna criticità di plausibilità', !runCase(S({ r:{ ...NEG }, igg4:'p', igg4Hpf:'60', igg4Rapporto:'45' })).criticita.some(c => /non plausibili/.test(c)));
+  const ep = runCase(S({ r:{ m_inf:'a', m_epi:'p' } }));
+  check('epitelioidi con media priva di infiltrato: criticità', ep.criticita.some(c => /reperti incoerenti/.test(c)), ep.criticita.join('|'));
+  check('e la criticità non è nel referto', !ep.referto.includes('reperti incoerenti'));
+});
 T('amiloide solo con reperto e Congo', () => {
   check('Congo positivo senza materiale amorfo: niente amiloide', !/amiloide/.test(runCase(S({ r:{ ...NEG }, congo:'p' })).diagnosi));
 });
