@@ -69,7 +69,7 @@ Discordanza fra biopsie bilaterali 4,4-13% nelle serie e 5,5% nella revisione di
 npm test
 ```
 
-226 asserzioni. La classificazione è confrontata con la regola del §4 del piano (riscritta nel test, senza riusare il motore) su 2 125 764 combinazioni di reperti, rami, elastica interna e struttura. Su tutto lo spazio la clinica (cinque profili) non cambia categoria né riga di diagnosi. Su un campione di 92 451 casi con referto completo (che varia anche DD, calcificazioni, IgG4, Congo red, segnali d'allarme, adeguatezza, cortisone, età) si verifica che: la clinica non cambia i suggerimenti IHC; nessun reperto → mai A né «compatibile»; nessun termine vietato né raccomandazione clinica nel referto; le criticità non compaiono nel testo. Invarianti sull'intero spazio: media infiammata (asse o ramo) → sempre A salvo inadeguato; giganti senza media infiammata → mai A; nessuna voce morta in `CONCLUSIONI`. Il test è stato provato con mutazioni del motore (C senza elastica, D prima di B, soglia età, cortisone, stati non valutati scritti come presenti): tutte intercettate.
+237 asserzioni. La classificazione è confrontata con la regola del §4 del piano (riscritta nel test, senza riusare il motore) su 2 125 764 combinazioni di reperti, rami, elastica interna e struttura. Su tutto lo spazio la clinica (cinque profili) non cambia categoria né riga di diagnosi. Su un campione di 92 451 casi con referto completo (che varia anche DD, calcificazioni, IgG4, Congo red, segnali d'allarme, adeguatezza, cortisone, età) si verifica che: la clinica non cambia i suggerimenti IHC; nessun reperto → mai A né «compatibile»; nessun termine vietato né raccomandazione clinica nel referto; le criticità non compaiono nel testo. Invarianti sull'intero spazio: media infiammata (asse o ramo) → sempre A salvo inadeguato; giganti senza media infiammata → mai A; nessuna voce morta in `CONCLUSIONI`. Il test è stato provato con mutazioni del motore (C senza elastica, D prima di B, soglia età, cortisone, stati non valutati scritti come presenti): tutte intercettate.
 
 ## Fonti principali
 
@@ -78,7 +78,7 @@ npm test
 - Dejaco C, et al. **EULAR recommendations for imaging in large vessel vasculitis: 2023 update.**
 - Hellmich B, et al. **2018 update of the EULAR recommendations for the management of large vessel vasculitis.** Ann Rheum Dis 2020
 
-Bibliografia completa nel tool.
+Nella bibliografia del tool sono riportate anche 11 referenze del consensus (Nair 2023, voci 13, 14, 21, 24, 33, 40, 50, 56, 58, 59, 60) su cui poggiano le regole: infiammazione extramediale, esiti di danno arterioso, calcificazioni, amiloide, soglie IgG4, cortisone, IHC. Le altre 55 voci del consensus non sono riprese.
 
 ## Disclaimer
 

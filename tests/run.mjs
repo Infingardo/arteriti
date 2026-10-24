@@ -499,6 +499,9 @@ T('purezza', () => {
   check('il motore non contiene termini vietati nei testi', !/Horton|arterite temporale|arterite atipica/i.test(engCod));
   check('il pannello clinico dichiara di non entrare nella diagnosi', /non entra nella diagnosi/.test(html));
   check('la pagina cita il consensus', /Nair/.test(html) && /107574/.test(html));
+  // referenze del consensus (Nair 2023, refs 13, 14, 33, 40, 56, 58, 50, 59, 60, 21, 24) riportate nella bibliografia
+  ['50:1064-1072','38:1360-1370','57:17-21','14:115-119','83:1091-1092','37:1621-1626','25:1181-1192','86:530-532','91:204-209','57:1377-1380','116:1574-1580']
+    .forEach(v => check(`la bibliografia riporta la referenza del consensus ${v}`, html.includes(`vol:'${v}'`)));
   check('nessun nuovo URL esterno caricato (script/link/@import)',
     !/<script[^>]+src="https?:/.test(html) && !/<link[^>]+href="https?:/.test(html) && !/@import\s+url\(\s*['"]?https?:/.test(html));
 });
