@@ -1,7 +1,44 @@
-# Changelog — Checklist morfologico-clinica GCA
+# Changelog — Checklist per la biopsia dell'arteria temporale
 
-## Non rilasciato
-- **Soglia di adeguatezza allineata alla pagina.** La pagina indica «ottimale ≥10 mm, minimo 6 sezioni», ma il motore dichiarava «adeguato» un frammento di 5–9 mm (soglia <5 mm). Ora «subottimale» = <10 mm o <6 sezioni. Nessun effetto su punteggio e categoria: cambiano solo badge e avviso.
+## v4.0.0 (Ottobre 2026) — riallineamento al consensus SCVP 2023
+
+Cambio di impianto, non retrocompatibile negli output. Fonte: Nair V, Fishbein GA, Padera R, et al. Cardiovasc Pathol 2023;67:107574. Piano e decisioni: `docs/PIANO_riallineamento_consensus_SCVP2023.md`.
+
+**Terminologia nuova dei referti: valida dal [DATA DA CONFERMARE]. I referti emessi con v3.x restano scritti con la vecchia terminologia.**
+
+### Cosa cambia
+- **La categoria dipende solo dall'istologia (D1).** Una domanda decide: la media è infiammata (asse o ramo)? Sì → A, *arterite attiva*, con o senza cellule giganti. Poi B (infiammazione extramediale), C (aspetti suggestivi di esiti di danno arterioso), D (fibrosi intimale), E (negativo). Struttura assente → inadeguato; infiltrato della media non valutato → nessuna conclusione.
+- **Eliminati lo score istologico (0-81), lo score clinico, il composito e i pesi 60/40-80/20 (D2).** La clinica resta come pannello di contesto senza numero: nota sul cortisone oltre 7 giorni («come da notizie cliniche») e avviso per età <50 anni.
+- **Terminologia (D3).** Nel referto non compaiono «arterite temporale», «Horton», «atipica»; «arterite a cellule giganti» non compare nella riga di diagnosi (resta solo nella nota: la classificazione è clinica).
+- **Adeguatezza (D4).** Protocollo del consensus: in toto, sezioni a 1-2 mm, almeno 5 livelli, elastiche. Non conforme → criticità, non cambia la categoria. La lunghezza è un dato descritto; la soglia <10 mm è stata tolta (nessuna fonte).
+- **Tolte le raccomandazioni cliniche dal referto (D5):** eco-Doppler, PET-TC, biopsia controlaterale, nuovo prelievo, blocco «Limiti interpretativi».
+- **Tolte le cifre senza fonte (D6):** «skip lesion 10-15%», «variante senza giganti 20-30%», «7-14 gg», «3-5 gg», rapporto CD4/CD8 «>2:1».
+- **Tre stati per ogni reperto** (non valutato / assente / presente): un campo non compilato non vale «assente». Se solo la media è valutata come non infiammata, E/D/B/C escono con la criticità «classe provvisoria».
+- **Mantenuti**: segnali d'allarme (categoria subordinata alla DD), raccomandazioni IHC come supporto (riscritte senza composito, mai criterio), importazione dei dati clinici (ora solo contesto).
+- Rimosso l'ex ramo «Valutazione non affidabile»: l'elastica interna è una scelta unica, l'incoerenza diffusa/focale non esiste più.
+
+### Prima e dopo: i sei casi del piano
+| Caso | v3.7.0 | v4.0.0 |
+|---|---|---|
+| Infiammazione transmurale, senza giganti (solo istologia) | Bassa concordanza, alterazioni aspecifiche | **A** — Arterite attiva |
+| Infiltrato linfocitario medio-intimale isolato (solo istologia) | Biopsia negativa / non conclusiva | **A** — Arterite attiva |
+| Lo stesso, con clinica piena | Istologia non diagnostica — clinica suggestiva («compatibile con GCA») | **A** — Arterite attiva (identica: la clinica non incide) |
+| Solo infiammazione avventiziale, clinica piena | Istologia non diagnostica — clinica suggestiva («compatibile con GCA») | **B** — Segmento di arteria muscolare senza arterite attiva. Infiammazione cronica avventiziale e periavventiziale (+ criticità: livelli più profondi) |
+| Frammentazione elastica + ispessimento intimale + neovasi, senza infiltrato | Bassa concordanza | **C** (con fibrosi della media) — aspetti suggestivi di esiti di danno arterioso; senza fibrosi della media: D/E |
+| Istologia del tutto negativa, clinica piena | «Il quadro istologico è compatibile con arterite a cellule giganti» | **E** — Segmento di arteria muscolare negativo per arterite |
+
+Il sesto caso era un difetto a prescindere dal consensus: un referto istologico che affermava compatibilità senza alcun reperto istologico.
+
+### Dati del consensus (non usati nel motore)
+Discordanza fra biopsie bilaterali 4,4-13% nelle serie, 5,5% nella revisione di 1935 casi; biopsia entro 7 giorni dall'inizio del cortisone (riportati dal piano).
+
+### Infrastruttura
+- `engine.js` riscritto: `classify()`, `CONCLUSIONI` per chiave (A-E, inadeguato, incompleto), `criticita()`, `avvisi()`, `generateReferto()`; `runCase()` resta l'unico punto di ingresso di pagina e test.
+- `tests/run.mjs` riscritto prima del motore (falliva per intero su v3.7.0): un input per ogni classe, i sei casi di regressione, sette invarianti verificate su 708 588 combinazioni. 182 asserzioni.
+
+### Aperto
+- Il piano non prevede C da sola elastica interrotta (senza fibrosi della media): scelta mantenuta come da piano §4.
+- `bigino_gca_clinici.html`, `flowchart_clinici.html`, `richiesta_biopsia_temporale.html` non sono ancora allineati (Horton, cifre, raccomandazioni): passaggio separato.
 
 ## v3.7.0 (Settembre 2026) — «non diagnostica» non deve uscire come «diagnostica»
 
