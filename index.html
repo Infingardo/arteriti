@@ -74,6 +74,9 @@ label.chk{display:flex;gap:8px;align-items:flex-start;padding:5px 0;cursor:point
 .crit p+p,.avv p+p,.ihcr p+p{margin-top:4px}
 .ph{color:var(--mut);font-style:italic}
 .pre{white-space:pre-wrap}
+.full{border-color:var(--teal)}
+.full h3{color:var(--teal)}
+.full p{font-size:13px}
 .foot{margin-top:14px;font-size:12px;color:var(--mut)}
 details{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px}
 details summary{cursor:pointer;font-weight:600}
@@ -104,6 +107,7 @@ details a{color:var(--teal)}
     <div class="card" id="c-rf" hidden><h3>Reperti inattesi</h3><p id="o-rf" class="pre"></p></div>
     <div class="card dx"><h3>Diagnosi</h3><div class="cls" id="o-cls"></div><p id="o-dx"></p></div>
     <div class="card"><h3>Nota</h3><p id="o-nota"></p></div>
+    <div class="card full"><h3>Referto unico (è il testo che «Copia referto» mette negli appunti)</h3><p id="o-ref" class="pre"></p></div>
     <div class="card crit" id="c-crit" hidden><h3>Criticità</h3><div id="o-crit"></div></div>
     <div class="card avv" id="c-avv" hidden><h3>Avviso di contesto clinico</h3><div id="o-avv"></div></div>
     <div class="card ihcr" id="c-ihc" hidden><h3>Suggerimenti IHC (supporto, mai criterio)</h3><div id="o-ihc"></div></div>
@@ -289,6 +293,7 @@ function render(){
   lista('o-crit','c-crit',R.criticita,function(x){return el('p','',x)});
   lista('o-avv','c-avv',R.avvisi,function(x){return el('p','',x)});
   lista('o-ihc','c-ihc',R.ihcRecs,function(x){return el('p','',x.marker+' ['+x.priority+'] — '+x.reason)});
+  put('o-ref',R.referto,'');
   cur=R.referto;
 }
 
