@@ -4,7 +4,7 @@
 
 Cambio di impianto, non retrocompatibile negli output. Fonte: Nair V, Fishbein GA, Padera R, et al. Cardiovasc Pathol 2023;67:107574. Piano e decisioni: `docs/PIANO_riallineamento_consensus_SCVP2023.md`.
 
-**Terminologia nuova dei referti: valida dal [DATA DA CONFERMARE]. I referti emessi con v3.x restano scritti con la vecchia terminologia.**
+**Terminologia nuova dei referti: valida dal 24 ottobre 2026. I referti emessi con v3.x restano scritti con la vecchia terminologia.**
 
 ### Cosa cambia
 - **La categoria dipende solo dall'istologia (D1).** Una domanda decide: la media è infiammata (asse o ramo)? Sì → A, *arterite attiva*, con o senza cellule giganti. Poi B (infiammazione extramediale), C (aspetti suggestivi di esiti di danno arterioso), D (fibrosi intimale), E (negativo). Struttura assente → inadeguato; infiltrato della media non valutato → nessuna conclusione.
