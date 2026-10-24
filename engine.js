@@ -39,8 +39,9 @@ const sp = a => a.filter(Boolean).join(' ');
 const extramediale = st => isP(st, 'a_inf') || isP(st, 'a_vv') || isP(st, 'i_inf');
 const mediaInfiammata = st => isP(st, 'm_inf') || st.rami === 'i';
 const strutturaAssente = st => !!st.adeq && st.adeq.struttura === false;
-const livelli = st => { const n = parseInt(st.adeq && st.adeq.livelli, 10); return isNaN(n) || n < 0 ? null : n; };
-const giorniCortisone = st => { const n = parseInt(st.clinica && st.clinica.giorniCortisone, 10); return isNaN(n) ? null : n; };
+// i livelli sono un conteggio: un valore non intero o negativo vale «non inserito», non viene troncato
+const livelli = st => { const n = Number(String(st.adeq && st.adeq.livelli).trim() === '' ? NaN : st.adeq && st.adeq.livelli); return Number.isInteger(n) && n >= 0 ? n : null; };
+const giorniCortisone = st => { const n = parseFloat(st.clinica && st.clinica.giorniCortisone); return isNaN(n) || n < 0 ? null : n; };
 const haSegnaliAllarme = st => !!st.redFlags && (st.redFlags.linfoidiAtipiche || st.redFlags.granulomiNecrotizzanti || st.redFlags.vasculiteNecrotizzante);
 
 // ── conclusioni: una per chiave ───────────────────────────────────────────────
@@ -223,8 +224,8 @@ function criticita(st, classe) {
   if (['B', 'C', 'D', 'E'].includes(classe)) {
     const dd = [['m_nec', 'necrosi fibrinoide'], ['m_eos', 'eosinofili'], ['m_pla', 'plasmacellule'], ['g_gran', 'granulomi'], ['g_neu', 'neutrofili']].filter(q => isP(st, q[0])).map(q => q[1]);
     if (dd.length) w.push('Reperti di diagnosi differenziale presenti (' + dd.join(', ') + ') con media non infiammata: verificare l’infiltrato della media e i livelli.');
-    const nv = ['i_fib', 'i_inf', 'a_inf', 'a_vv', 'm_fib'].some(k => !st.r || st.r[k] === undefined) || st.iel === undefined;
-    if (nv) w.push('Campi non valutati (intima, avventizia, vasa vasorum, fibrosi della media, elastica interna): classe provvisoria.');
+    const nv = ['i_fib', 'i_inf', 'a_inf', 'a_vv', 'm_fib'].some(k => !st.r || st.r[k] === undefined) || st.iel === undefined || st.rami === undefined;
+    if (nv) w.push('Campi non valutati (intima, avventizia, vasa vasorum, fibrosi della media, elastica interna, rami collaterali): classe provvisoria.');
   }
   return w;
 }

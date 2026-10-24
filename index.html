@@ -217,7 +217,7 @@ window.addEventListener('error', function(e){
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Livelli esaminati in EE</label>
-                            <input type="number" value={adeq.livelli} onChange={e=>setAdeq({...adeq,livelli:e.target.value})} className={inp} placeholder="es. 6"/>
+                            <input type="number" step="1" min="0" value={adeq.livelli} onChange={e=>setAdeq({...adeq,livelli:e.target.value})} className={inp} placeholder="es. 6"/>
                             <p className="text-xs text-gray-400 mt-1">Consensus: almeno 5.</p>
                         </div>
                     </div>

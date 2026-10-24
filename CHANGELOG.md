@@ -16,6 +16,7 @@ Cambio di impianto, non retrocompatibile negli output. Fonte: Nair V, Fishbein G
 - **Tre stati per ogni reperto** (non valutato / assente / presente): un campo non compilato non vale «assente». Se solo la media è valutata come non infiammata, E/D/B/C escono con la criticità «classe provvisoria».
 - **Mantenuti**: segnali d'allarme (categoria subordinata alla DD), raccomandazioni IHC come supporto (riscritte senza composito, mai criterio), importazione dei dati clinici (ora solo contesto).
 - Il referto riporta anche i reperti della media inseriti quando la media non è infiammata o non è valutata (epitelioidi, giganti); reperti di DD con media non infiammata generano una criticità (aggiunta dopo la review: da approvare o togliere).
+- Rami collaterali non valutati → criticità «classe provvisoria» (potrebbero cambiare la classe in A). Livelli non interi non vengono troncati; i giorni di cortisone decimali non perdono la frazione.
 - Rimosso l'ex ramo «Valutazione non affidabile»: l'elastica interna è una scelta unica, l'incoerenza diffusa/focale non esiste più.
 
 ### Prima e dopo: i sei casi del piano
@@ -35,11 +36,11 @@ Discordanza fra biopsie bilaterali 4,4-13% nelle serie, 5,5% nella revisione di 
 
 ### Infrastruttura
 - `engine.js` riscritto: `classify()`, `CONCLUSIONI` per chiave (A-E, inadeguato, incompleto), `criticita()`, `avvisi()`, `generateReferto()`; `runCase()` resta l'unico punto di ingresso di pagina e test.
-- `tests/run.mjs` riscritto prima del motore (falliva per intero su v3.7.0): un input per ogni classe, i sei casi di regressione, classificazione verificata contro un oracolo indipendente su 2 125 764 combinazioni, sette invarianti anche su un campione di 92 451 referti completi. 216 asserzioni.
+- `tests/run.mjs` riscritto prima del motore (falliva per intero su v3.7.0): un input per ogni classe, i sei casi di regressione, classificazione verificata contro un oracolo indipendente su 2 125 764 combinazioni, sette invarianti anche su un campione di 92 451 referti completi. 222 asserzioni.
 
 ### Aperto
 - Campo «Lato» (destra/sinistra) della checklist di riferimento non portato nel referto: non è nel piano §3, da decidere.
-- La review cross-model con Codex non è stata eseguita (modello non supportato dall'account); eseguita una review separata con un subagente Claude, non indipendente dal punto di vista del modello.
+- Revisioni: subagente Claude (non cross-model) e Codex con `gpt-6-sol` (il modello di default `gpt-6.1-sol` non è accettato dall'account ChatGPT).
 - Il piano non prevede C da sola elastica interrotta (senza fibrosi della media): scelta mantenuta come da piano §4.
 - `bigino_gca_clinici.html`, `flowchart_clinici.html`, `richiesta_biopsia_temporale.html` non sono ancora allineati (Horton, cifre, raccomandazioni): passaggio separato.
 
@@ -123,7 +124,7 @@ che ogni chiave raggiungibile abbia una conclusione e che la mappa non abbia voc
 
 ### Aperto
 - Campo «Lato» (destra/sinistra) della checklist di riferimento non portato nel referto: non è nel piano §3, da decidere.
-- La review cross-model con Codex non è stata eseguita (modello non supportato dall'account); eseguita una review separata con un subagente Claude, non indipendente dal punto di vista del modello.
+- Revisioni: subagente Claude (non cross-model) e Codex con `gpt-6-sol` (il modello di default `gpt-6.1-sol` non è accettato dall'account ChatGPT).
 In modalità «dati completi» la sola morfologia arriva al massimo a 81 × 0,6 = 49, contro
 una soglia diagnostica di 70: senza almeno 46 punti clinici nessun quadro morfologico,
 per quanto conclusivo, raggiunge la categoria diagnostica. Si può sostenere che sia

@@ -211,6 +211,15 @@ T('classe C richiede elastica interrotta e fibrosi della media', () => {
   eq('B prima di D: intima fibrotica + avventizia infiammata → B', runCase(S({ r:{ m_inf:'a', i_fib:'p', a_inf:'p' } })).classe, 'B');
   eq('ispessimento fibroso avventiziale da solo non è D', runCase(S({ r:{ ...NEG, a_fib:'p' } })).classe, 'E');
 });
+T('rami non valutati e numeri non interi', () => {
+  const nvRami = runCase(S({ r:{ ...NEG }, iel:'c' }));
+  check('rami non valutati: criticità di classe provvisoria', nvRami.criticita.some(c => /classe provvisoria/.test(c) && /rami collaterali/.test(c)), nvRami.criticita.join('|'));
+  check('rami valutati (assenti): nessuna criticità di provvisorietà', !runCase(S({ r:{ ...NEG }, iel:'c', rami:'a' })).criticita.some(c => /classe provvisoria/.test(c)));
+  eq('livelli 5.9 non vengono troncati a 5', runCase(S({ adeq:{ livelli:'5.9' }, r:{ ...NEG } })).adeguatezza.livelli, null);
+  check('livelli 5.9: nessuna frase «Esame su 5 livelli»', !/Esame su 5/.test(runCase(S({ adeq:{ livelli:'5.9' }, r:{ ...NEG } })).micro));
+  check('cortisone 7.9 giorni: nota «oltre 7 giorni»', /oltre 7 giorni/.test(runCase(S({ r:{ ...NEG }, cli:{ cortisone:true, giorniCortisone:'7.9' } })).nota));
+  check('cortisone 7 giorni esatti: nessuna nota', !/oltre 7/.test(runCase(S({ r:{ ...NEG }, cli:{ cortisone:true, giorniCortisone:'7' } })).nota));
+});
 T('amiloide solo con reperto e Congo', () => {
   check('Congo positivo senza materiale amorfo: niente amiloide', !/amiloide/.test(runCase(S({ r:{ ...NEG }, congo:'p' })).diagnosi));
 });
@@ -283,7 +292,7 @@ T('campi non valutati: classe provvisoria', () => {
   const prov = runCase(S({ r:{ m_inf:'a' } }));
   eq('solo la media valutata (assente) → E', prov.classe, 'E');
   check('ma con criticità «classe provvisoria»', prov.criticita.some(c => /classe provvisoria/.test(c)), prov.criticita.join('|'));
-  const completo = runCase(S({ r:{ ...NEG }, iel:'c' }));
+  const completo = runCase(S({ r:{ ...NEG }, iel:'c', rami:'a' }));
   check('tutto valutato: nessuna criticità di provvisorietà', !completo.criticita.some(c => /classe provvisoria/.test(c)), completo.criticita.join('|'));
 });
 
@@ -383,6 +392,10 @@ T('esplorazione esaustiva', () => {
       const k = classify(st); casi++;
       chiavi.add(k.classe);
       if (k.classe !== oracolo(r, iel, rami, str)) divergeOracolo++;
+      for (const prof of CLIN) {   // tutti i profili clinici su tutto lo spazio morfologico
+        const y = classify(S({ r, iel, rami, adeq:{ struttura:str }, cli:prof }));
+        if (y.classe !== k.classe || y.diagnosi !== k.diagnosi) cliniciCambiano++;
+      }
       if (CONCLUSIONI[k.classe] === undefined) senzaConclusione++;
       const mediaInfiammata = r.m_inf === 'p' || rami === 'i';
       if (str === false) { if (k.classe !== 'inadeguato') mediaMancata++; }
@@ -410,10 +423,6 @@ T('esplorazione esaustiva', () => {
         if (out.criticita.some(c => out.referto.includes(c.slice(0, 40)))) critNelReferto++;
         if (!rigaDiagnosi(out.referto)) mancaDiagnosi++;
         if (!RKEYS.some(c => extra[c] === 'p') && rami !== 'i' && /compatibil/i.test(out.referto)) nessunReperto++;
-        for (const prof of CLIN) {
-          const y = classify(S({ r, iel, rami, adeq:{ struttura:str }, cli:prof }));
-          if (y.classe !== k.classe || y.diagnosi !== k.diagnosi) { cliniciCambiano++; }
-        }
         const z = classify(S({ r, iel, rami, adeq:{ struttura:str }, ihc:{ cd68:true, cd4:true, cd8:true, cd3:true, cd20:true } }));
         if (z.classe !== k.classe) ihcCambia++;
       }
