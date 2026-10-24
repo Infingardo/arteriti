@@ -127,7 +127,7 @@ T('inadeguato e incompleto', () => {
   const inad = runCase(S({ adeq:{ struttura:false }, r:{ m_inf:'p', m_gig:'p' } }));
   eq('inadeguato: chiave', inad.classe, 'inadeguato');
   check('inadeguato: dice che non è valutabile', /non è valutabile istologicamente/.test(inad.diagnosi), inad.diagnosi);
-  check('inadeguato: nessuna raccomandazione clinica', !/eco-Doppler|PET|controlaterale/i.test(inad.referto));
+  check('inadeguato: nessuna raccomandazione clinica', !/eco-Doppler|\bPET\b|controlaterale/i.test(inad.referto));
   const inc = runCase(S({ r:{ i_inf:'p', a_inf:'p' } }));
   eq('media non valutata: incompleto', inc.classe, 'incompleto');
   check('incompleto: nessuna conclusione', /nessuna conclusione/.test(inc.diagnosi), inc.diagnosi);
@@ -293,7 +293,7 @@ T('terminologia vietata (campioni mirati)', () => {
 T('nessuna raccomandazione clinica nel referto', () => {
   for (const st of [S({ r:{ ...NEG }, cli:CLIN_PIENA }), S({ r:{ m_inf:'p' } }), S({ adeq:{ struttura:false } }), S({ r:{ m_inf:'a', a_inf:'p' } })]) {
     const r = runCase(st);
-    check(`nessuna raccomandazione clinica (${r.classe})`, !/eco-?Doppler|PET|biopsia controlaterale|nuovo prelievo/i.test(r.referto));
+    check(`nessuna raccomandazione clinica (${r.classe})`, !/eco-?Doppler|\bPET\b|biopsia controlaterale|nuovo prelievo/i.test(r.referto));
   }
 });
 
@@ -348,7 +348,7 @@ T('esplorazione esaustiva', () => {
   eq('5. ogni chiave raggiungibile ha una conclusione', senzaConclusione, 0);
   check('5. la mappa CONCLUSIONI non ha voci morte', Object.keys(CONCLUSIONI).every(k => chiavi.has(k)) && [...chiavi].every(k => k in CONCLUSIONI),
     `mappa: ${Object.keys(CONCLUSIONI)} / viste: ${[...chiavi]}`);
-  eq('le classi raggiungibili sono A-E, inadeguato, incompleto', [...chiavi].sort().join(','), 'A,B,C,D,E,incompleto,inadeguato');
+  eq('le classi raggiungibili sono A-E, inadeguato, incompleto', [...chiavi].sort().join(','), 'A,B,C,D,E,inadeguato,incompleto');
   eq('6. nessun termine vietato nel referto, nessuna «GCA» nella riga di diagnosi', vietati, 0);
   eq('7. le criticità non compaiono nel testo del referto', critNelReferto, 0);
   eq('ogni referto ha una riga di diagnosi', mancaDiagnosi, 0);
