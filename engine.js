@@ -19,15 +19,15 @@
 
 const GRADI = { l: ['lieve', 'lieve'], m: ['moderato', 'moderata'], s: ['severo', 'severa'] };
 
-// Metadati di presentazione per chiave (la pagina sceglie il componente dell'icona).
+// Titolo di presentazione per chiave (la grafica e' della pagina).
 const CLASSI = {
-  A:           { titolo: 'A — Arterite attiva',                                      color: 'bg-red-100 border-red-500',       icon: 'alert' },
-  B:           { titolo: 'B — Senza arterite attiva, infiammazione extramediale',    color: 'bg-yellow-100 border-yellow-500', icon: 'info' },
-  C:           { titolo: 'C — Aspetti suggestivi di esiti di danno arterioso',       color: 'bg-yellow-100 border-yellow-500', icon: 'info' },
-  D:           { titolo: 'D — Senza arterite attiva, fibrosi intimale',              color: 'bg-blue-100 border-blue-400',     icon: 'info' },
-  E:           { titolo: 'E — Negativo per arterite',                                color: 'bg-green-100 border-green-500',   icon: 'check' },
-  inadeguato:  { titolo: 'Campione non valutabile',                                       color: 'bg-gray-100 border-gray-500',     icon: 'ban' },
-  incompleto:  { titolo: 'Non conclusivo — infiltrato della media non valutato',     color: 'bg-gray-100 border-gray-400',     icon: 'info' },
+  A:           { titolo: 'A — Arterite attiva' },
+  B:           { titolo: 'B — Senza arterite attiva, infiammazione extramediale' },
+  C:           { titolo: 'C — Aspetti suggestivi di esiti di danno arterioso' },
+  D:           { titolo: 'D — Senza arterite attiva, fibrosi intimale' },
+  E:           { titolo: 'E — Negativo per arterite' },
+  inadeguato:  { titolo: 'Campione non valutabile' },
+  incompleto:  { titolo: 'Non conclusivo — infiltrato della media non valutato' },
 };
 
 // ── helper sullo stato ────────────────────────────────────────────────────────
@@ -253,27 +253,27 @@ function getIhcRecommendations(st, classe) {
   if (!m.cd68) {
     const documentato = isP(st, 'm_gig') || isP(st, 'm_epi');
     recs.push(classe !== 'A' || !documentato ? {
-      marker: 'CD68', priority: 'ALTA', color: 'text-red-600',
+      marker: 'CD68', priority: 'ALTA',
       reason: 'CD68 documenta l’infiltrato macrofagico a livello intima-media; sensibile ma non specifico (presente in altre vasculiti granulomatose e macrofagiche), mai da solo un criterio.'
     } : {
-      marker: 'CD68', priority: 'OPZIONALE', color: 'text-blue-600',
+      marker: 'CD68', priority: 'OPZIONALE',
       reason: 'Cellule giganti o istiociti epitelioidi già documentati su EE. CD68 può documentare la distribuzione intima-media dell’infiltrato macrofagico.'
     });
   }
   if (!m.cd4 && !m.cd8) {
     if (classe === 'B' || classe === 'C')
-      recs.push({ marker: 'CD4 + CD8', priority: 'ALTA', color: 'text-red-600',
+      recs.push({ marker: 'CD4 + CD8', priority: 'ALTA',
         reason: 'La distribuzione compartimentale CD4/CD8 (pattern descritto: CD4 prevalente in media, CD8 in avventizia) può supportare la diagnosi differenziale. Non specifica se isolata.' });
   } else if (m.cd4 && !m.cd8) {
-    recs.push({ marker: 'CD8', priority: 'MEDIA', color: 'text-orange-600',
+    recs.push({ marker: 'CD8', priority: 'MEDIA',
       reason: 'Per valutare il rapporto CD4/CD8. Pattern descritto in GCA: CD4+ prevalente in media, CD8+ in avventizia. Non discriminante se isolato.' });
   }
   if (!m.cd20 && !isP(st, 'm_inf') && !haSegnaliAllarme(st) && ddList(st).length === 0) {
-    recs.push({ marker: 'CD20', priority: 'MEDIA', color: 'text-orange-600',
+    recs.push({ marker: 'CD20', priority: 'MEDIA',
       reason: 'Utile se si sospetta una componente B prominente: un infiltrato B-ricco fa riconsiderare la diagnosi (IgG4-RD, vasculiti linfocitarie). Per IgG4 servono morfologia, plasmacellule e rapporto IgG4/IgG su IHC dedicata.' });
   }
   if (!m.cd3 && (m.cd4 || m.cd8)) {
-    recs.push({ marker: 'CD3', priority: 'BASSA', color: 'text-gray-600',
+    recs.push({ marker: 'CD3', priority: 'BASSA',
       reason: 'Opzionale: quantifica la popolazione T totale. Non essenziale per la routine.' });
   }
   return recs;
@@ -309,8 +309,6 @@ function runCase(st) {
   const ref = generateReferto(st, classe, diagnosi);
   return {
     classe, diagnosi, titolo: meta.titolo,
-    color: subordinata ? 'bg-purple-100 border-purple-500' : meta.color,
-    icon: subordinata ? 'triangle' : meta.icon,
     subordinata, redFlag: subordinata,
     nota: ref.nota, macro: ref.macro, micro: ref.micro, referto: ref.referto,
     criticita: criticita(st, classe),

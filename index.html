@@ -1,520 +1,325 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checklist per la biopsia dell'arteria temporale — consensus SCVP 2023</title>
-    <script src="./vendor/react.production.min.js"></script>
-    <script src="./vendor/react-dom.production.min.js"></script>
-    <script src="./vendor/babel.min.js"></script>
-    <script src="./vendor/tailwind.js"></script>
-    <script src="./engine.js?v=4.0.0"></script>
-    <style>
-        body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Oxygen','Ubuntu','Cantarell','Fira Sans','Droid Sans','Helvetica Neue',sans-serif; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checklist per la biopsia dell'arteria temporale — consensus SCVP 2023</title>
+<script src="./engine.js?v=4.0.0"></script>
+<style>
+/* Form a sinistra, referto che si compone a destra (sticky); in colonna su telefono. Nessuna risorsa esterna. */
+:root{
+  --bg:#f6f4f2; --panel:#ffffff; --fg:#1d2430; --mut:#5d6675; --line:#dcd8d3;
+  --wine:#8b1e3f; --wine-soft:#f6e8ed; --teal:#0f6b73; --teal-soft:#e2f0f1;
+  --amb:#9a5a06; --amb-soft:#faefdc; --on:#ffffff;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --serif:Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14181f; --panel:#1c222c; --fg:#e8eaee; --mut:#9aa3b2; --line:#2f3745;
+  --wine:#e0728f; --wine-soft:#2d1b23; --teal:#4cc0c9; --teal-soft:#17292c;
+  --amb:#e8a54a; --amb-soft:#2c2415; --on:#14181f; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.45;
+  padding:20px 16px 40px}
+.wrap{max-width:1180px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px;border-bottom:2px solid var(--wine);padding-bottom:10px}
+h1{font-family:var(--serif);font-size:24px;line-height:1.15;color:var(--wine);margin:0}
+header p{color:var(--mut);font-size:13px;margin:3px 0 0}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:7px 13px;border-radius:7px;font-weight:500}
+.btn:hover{border-color:var(--teal)}
+.btn.primary{background:var(--wine);border-color:var(--wine);color:var(--on)}
+.btn:focus-visible,.seg button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.form{display:flex;flex-direction:column;gap:14px}
+section.blk{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+section.blk.ctx{border:2px dashed var(--mut)}
+section.blk.alert{border-color:var(--wine)}
+section.blk h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);margin:0 0 6px}
+section.blk.alert h2{color:var(--wine)}
+.row{display:flex;gap:6px 12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:6px 0;border-top:1px dotted var(--line)}
+.row:first-of-type{border-top:0}
+.row>.lb{flex:1 1 170px;min-width:0}
+.ctl{display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{border:0;border-right:1px solid var(--line);background:transparent;color:var(--fg);padding:5px 10px;font-size:13px}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--teal-soft)}
+.seg button[aria-pressed="true"].neg{background:var(--teal);color:var(--on)}
+.seg button[aria-pressed="true"].pos{background:var(--wine);color:var(--on)}
+.seg button[aria-pressed="true"].neu{background:var(--fg);color:var(--bg)}
+.seg.gr button[aria-pressed="true"]{background:var(--amb);color:var(--on)}
+input[type=number]{width:84px;font:inherit;padding:5px 7px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--fg)}
+label.chk{display:flex;gap:8px;align-items:flex-start;padding:5px 0;cursor:pointer}
+.sub{font-size:12px;color:var(--mut);margin:0 0 6px}
+.nv{font-size:11px;color:var(--mut);font-style:italic;flex-basis:100%}
+.ctxnote{font-weight:600;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:8px 10px;margin:0 0 8px}
+.imp{font-size:12px;background:var(--teal-soft);border-radius:7px;padding:6px 9px;margin:0 0 8px}
+/* output */
+.out{position:sticky;top:12px;display:flex;flex-direction:column;gap:10px}
+@media (max-width:860px){.out{position:static}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.card h3{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut);margin:0 0 4px}
+.card p{font-family:var(--serif);font-size:14px;line-height:1.5;margin:0}
+.dx{background:var(--wine-soft);border-color:var(--wine)}
+.dx h3{color:var(--wine)}
+.dx p{font-size:17px;font-weight:600;color:var(--fg)}
+.dx .cls{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--wine);margin-bottom:4px}
+.crit,.avv{background:var(--amb-soft);border-color:var(--amb)}
+.crit h3,.avv h3{color:var(--amb)}
+.crit p,.avv p,.ihcr p{font-family:var(--sans);font-size:13px}
+.crit p+p,.avv p+p,.ihcr p+p{margin-top:4px}
+.ph{color:var(--mut);font-style:italic}
+.pre{white-space:pre-wrap}
+.foot{margin-top:14px;font-size:12px;color:var(--mut)}
+details{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px}
+details summary{cursor:pointer;font-weight:600}
+details h4{margin:12px 0 4px;font-size:13px;color:var(--teal)}
+details ul{margin:0;padding-left:18px}
+details li{margin:3px 0}
+details a{color:var(--teal)}
+</style>
 </head>
 <body>
-<div id="root"><div style="padding:40px;font-family:sans-serif;color:#333;text-align:center"><p style="font-size:16px">⏳ Caricamento in corso...</p><p style="font-size:12px;color:#999;margin-top:8px">Il tool usa React + Babel da vendor/. Se questo messaggio persiste oltre 10 secondi, ricaricare la pagina.</p></div></div>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Checklist per la biopsia dell'arteria temporale</h1>
+    <p>Compila i reperti: macroscopia, microscopia, diagnosi e nota si scrivono da sole. Classificazione qualitativa secondo il consensus SCVP 2023 (Nair et al.): nessun punteggio.</p>
+  </div>
+  <div class="btns">
+    <button class="btn" id="reset" type="button">Azzera</button>
+    <button class="btn primary" id="copy" type="button">Copia referto</button>
+  </div>
+</header>
+
+<div class="grid">
+  <div class="form" id="form"></div>
+  <div class="out" aria-live="polite">
+    <div class="card"><h3>Macroscopia</h3><p id="o-macro"></p></div>
+    <div class="card"><h3>Microscopia</h3><p id="o-micro"></p></div>
+    <div class="card" id="c-rf" hidden><h3>Reperti inattesi</h3><p id="o-rf" class="pre"></p></div>
+    <div class="card dx"><h3>Diagnosi</h3><div class="cls" id="o-cls"></div><p id="o-dx"></p></div>
+    <div class="card"><h3>Nota</h3><p id="o-nota"></p></div>
+    <div class="card crit" id="c-crit" hidden><h3>Criticità</h3><div id="o-crit"></div></div>
+    <div class="card avv" id="c-avv" hidden><h3>Avviso di contesto clinico</h3><div id="o-avv"></div></div>
+    <div class="card ihcr" id="c-ihc" hidden><h3>Suggerimenti IHC (supporto, mai criterio)</h3><div id="o-ihc"></div></div>
+  </div>
+</div>
+<p class="foot">Supporto alla stesura: i reperti li decidi tu, il testo segue quanto selezionato e omette ciò che non è compilato («non valutato» non vale «assente»). La categoria dipende solo dai reperti istologici: la clinica è contesto e non entra nella diagnosi. Le criticità, gli avvisi e i suggerimenti IHC restano fuori dal testo copiato. La classificazione come arterite a cellule giganti resta clinica; non implementa i criteri ACR/EULAR 2022. Nessun dato viene salvato. Testi da rileggere prima dell'uso. La diagnosi resta responsabilità del patologo refertante.</p>
+
+<details>
+  <summary>Note metodologiche (v4.0)</summary>
+  <ul>
+    <li>Riallineamento al consensus SCVP 2023: eliminati score istologico, score clinico e composito; la categoria è qualitativa.</li>
+    <li>Media infiammata (asse o ramo), di qualunque grado → A, arterite attiva. Le cellule giganti sono utili ma non necessarie, e non bastano senza infiammazione della media.</li>
+    <li>Ogni reperto ha tre stati: non valutato, assente, presente. Un campo non compilato non vale «assente».</li>
+    <li>La clinica non modifica mai la categoria: serve per la nota sul cortisone oltre 7 giorni e per l'avviso sotto i 50 anni.</li>
+    <li>Nessuna raccomandazione clinica nel referto. «Esiti di danno arterioso» è una formula prudente: criteri non validati, scarsa riproducibilità secondo il consensus.</li>
+    <li>Le IHC sono un supporto: non entrano mai nella categoria. I segnali d'allarme lasciano la categoria ma la subordinano alla diagnosi differenziale.</li>
+  </ul>
+</details>
+<details>
+  <summary>Bibliografia</summary>
+  <div id="bib"></div>
+</details>
+<p class="foot" id="ver">v4.0.0 — Ottobre 2026</p>
+</div>
+
 <script>
-window.addEventListener('error', function(e){
-    document.getElementById('root').innerHTML = '<div style="padding:20px;color:red;font-family:monospace;font-size:12px"><strong>ERRORE JS:</strong><br>' + e.message + '<br>Linea: ' + e.lineno + '</div>';
-});
-</script>
-<script type="text/babel">
-    const { useState } = React;
+(function(){
+// Stato letto da engine.js (runCase). Ogni reperto: undefined = non valutato, 'a' = assente, 'p' = presente.
+var st={
+  adeq:{lunghezza:'',livelli:'',inToto:undefined,elastiche:undefined,livelliAggiuntivi:undefined,struttura:undefined},
+  r:{},gr:{},iel:undefined,calc:undefined,rami:undefined,congo:undefined,igg4:undefined,igg4Hpf:'',igg4Rapporto:'',
+  ihc:{cd68:false,cd4:false,cd8:false,cd3:false,cd20:false},
+  redFlags:{linfoidiAtipiche:false,granulomiNecrotizzanti:false,vasculiteNecrotizzante:false},
+  clinica:{eta:'',cortisone:undefined,giorniCortisone:'',ves:'',pcr:'',cefalea:undefined,claudicatio:undefined,visivi:undefined,halo:undefined}
+};
+var INIT=JSON.stringify(st,function(k,v){return v===undefined?'__u':v});
+function reset(){var o=JSON.parse(INIT,function(k,v){return v==='__u'?undefined:v});Object.keys(o).forEach(function(k){st[k]=o[k]})}
 
-    /* ── ICONE ─────────────────────────────────────────────────────────── */
-    const AlertCircle = ({className,size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
-    const CheckCircle = ({className,size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
-    const Info = ({className,size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;
-    const RotateCcw = ({className,size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>;
-    const TriangleAlert = ({className,size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
-    const Ban = ({className,size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>;
+function getP(path){return path.split('.').reduce(function(o,k){return o==null?undefined:o[k]},st)}
+function setP(path,v){var a=path.split('.'),o=st;for(var i=0;i<a.length-1;i++)o=o[a[i]];if(v===undefined&&(a[0]==='r'||a[0]==='gr'))delete o[a[a.length-1]];else o[a[a.length-1]]=v}
 
-    /* ── COMPONENTI ─────────────────────────────────────────────────────── */
-    // Il motore restituisce una chiave; la scelta del componente e' della pagina.
-    const ICONE = {
-        alert:    <AlertCircle className="text-red-600"/>,
-        check:    <CheckCircle className="text-green-600"/>,
-        info:     <Info className="text-yellow-600"/>,
-        ban:      <Ban className="text-gray-600"/>,
-        triangle: <TriangleAlert className="text-purple-600"/>,
-    };
+var SI=[[true,'Sì'],[false,'No']];
+var LAYOUT=[
+ {t:'1. Adeguatezza del campione',sub:'Protocollo del consensus: in toto, sezioni a 1-2 mm, almeno 5 livelli, colorazione per le elastiche. Non cambia la categoria: genera criticità.',rows:[
+  {k:'num',id:'adeq.lunghezza',label:'Lunghezza del segmento (mm)',step:'0.5'},
+  {k:'num',id:'adeq.livelli',label:'Livelli esaminati in EE (consensus: almeno 5)',step:'1'},
+  {k:'ch',id:'adeq.struttura',label:'Struttura arteriosa identificabile (intima, media, avventizia)',o:SI},
+  {k:'ch',id:'adeq.inToto',label:'Incluso in toto, sezionato a 1-2 mm dopo la processazione',o:SI},
+  {k:'ch',id:'adeq.elastiche',label:'Colorazione per le elastiche',o:[[true,'Eseguita'],[false,'Non eseguita']]},
+  {k:'ch',id:'adeq.livelliAggiuntivi',label:'Livelli aggiuntivi più profondi',o:[[true,'Eseguiti'],[false,'Non eseguiti']]}
+ ]},
+ {t:'2. Media',sub:'Il reperto decisivo: infiltrato infiammatorio della media, di qualunque grado.',rows:[
+  {k:'apg',id:'m_inf',label:'Infiltrato infiammatorio'},
+  {k:'ap',id:'m_epi',label:'Istiociti epitelioidi'},
+  {k:'ap',id:'m_gig',label:'Cellule giganti (utili, non necessarie, non sufficienti da sole)'},
+  {k:'ap',id:'m_nec',label:'Necrosi fibrinoide'},
+  {k:'apg',id:'m_fib',label:'Fibrosi sostitutiva'},
+  {k:'ap',id:'m_eos',label:'Eosinofili'},
+  {k:'ap',id:'m_pla',label:'Plasmacellule'},
+  {k:'ch',id:'rami',label:'Rami collaterali nel campione',o:[['a','Assenti'],['n','Media indenne'],['i','Media infiammata']]}
+ ]},
+ {t:'3. Intima ed elastica interna',rows:[
+  {k:'apg',id:'i_fib',label:'Ispessimento fibroso intimale'},
+  {k:'apg',id:'i_inf',label:'Infiltrato infiammatorio intimale'},
+  {k:'ch',id:'iel',label:'Elastica interna',o:[['c','Conservata'],['f','Frammentata / interrotta']]},
+  {k:'ch',id:'calc',label:'Calcificazioni',o:[['a','Assenti'],['i','Elastica interna'],['m','Media'],['b','Entrambe']]}
+ ]},
+ {t:'4. Avventizia e periavventizia',sub:"L'infiammazione solo avventiziale è aspecifica e non è arterite attiva: impone livelli più profondi.",rows:[
+  {k:'apg',id:'a_inf',label:'Infiltrato infiammatorio cronico'},
+  {k:'ap',id:'a_vv',label:'Vasa vasorum coinvolti'},
+  {k:'apg',id:'a_fib',label:'Ispessimento fibroso'},
+  {k:'ap',id:'a_neo',label:'Neovasi'}
+ ]},
+ {t:'5. Altri reperti per la diagnosi differenziale',rows:[
+  {k:'ap',id:'g_gran',label:'Granulomi'},
+  {k:'ap',id:'g_neu',label:'Neutrofili / microtrombi'},
+  {k:'ap',id:'g_amy',label:'Materiale amorfo eosinofilo'},
+  {k:'ch',id:'congo',label:'Rosso Congo',o:[['n','Negativo'],['p','Positivo'],['x','Non eseguito']]},
+  {k:'ap',id:'g_tra',label:'Trombo, pseudoaneurisma o duplicazione dell’elastica'},
+  {k:'ch',id:'igg4',label:'IgG4 (immunoistochimica)',o:[['n','Negativa'],['p','Positiva'],['x','Non eseguita']]},
+  {k:'num',id:'igg4Hpf',label:'IgG4+ per HPF',cond:function(){return st.igg4==='p'}},
+  {k:'num',id:'igg4Rapporto',label:'Rapporto IgG4/IgG (%)',cond:function(){return st.igg4==='p'}}
+ ]},
+ {t:'6. Reperti inattesi (segnali d’allarme)',cls:'alert',sub:"Se presenti la categoria resta, ma è subordinata all'esclusione del pattern alternativo.",rows:[
+  {k:'chk',id:'redFlags.linfoidiAtipiche',label:'Cellule linfoidi atipiche intravascolari (anche poche unità sono significative)'},
+  {k:'chk',id:'redFlags.granulomiNecrotizzanti',label:'Granulomi con necrosi centrale'},
+  {k:'chk',id:'redFlags.vasculiteNecrotizzante',label:'Vasculite necrotizzante / infiltrato neutrofilico prominente con danno di parete'}
+ ]},
+ {t:'7. Marker IHC eseguiti',sub:'Supporto: non entrano mai nella categoria.',rows:[
+  {k:'chk',id:'ihc.cd68',label:'CD68'},{k:'chk',id:'ihc.cd4',label:'CD4'},{k:'chk',id:'ihc.cd8',label:'CD8'},
+  {k:'chk',id:'ihc.cd3',label:'CD3'},{k:'chk',id:'ihc.cd20',label:'CD20'}
+ ]},
+ {t:'8. Contesto clinico',cls:'ctx',note:"Contesto, non entra nella diagnosi: nessun campo di questa sezione modifica la categoria o la riga di diagnosi. Serve solo per la nota sul cortisone (oltre 7 giorni) e per l'avviso sotto i 50 anni.",import:true,rows:[
+  {k:'num',id:'clinica.eta',label:'Età (anni)',step:'1'},
+  {k:'num',id:'clinica.ves',label:'VES (mm/h)',step:'1'},
+  {k:'num',id:'clinica.pcr',label:'PCR (valore di laboratorio)',step:'any'},
+  {k:'ch',id:'clinica.cefalea',label:'Cefalea di nuova insorgenza',o:SI},
+  {k:'ch',id:'clinica.claudicatio',label:'Claudicatio mascellare',o:SI},
+  {k:'ch',id:'clinica.visivi',label:'Disturbi visivi',o:SI},
+  {k:'ch',id:'clinica.halo',label:'Halo sign ecografico',o:[[true,'Positivo'],[false,'Negativo']]},
+  {k:'ch',id:'clinica.cortisone',label:'Cortisone già iniziato',o:SI},
+  {k:'num',id:'clinica.giorniCortisone',label:"Giorni dall'inizio del cortisone alla biopsia",step:'1',cond:function(){return st.clinica.cortisone===true}}
+ ]}
+];
+var GR=[['l','Lieve'],['m','Moderato'],['s','Severo']];
 
-    // Reperto a tre stati: non valutato (nessun pulsante premuto) / assente / presente.
-    // Un campo non compilato NON vale "assente".
-    const GRADI_UI = [['l','Lieve'],['m','Moderato'],['s','Severo']];
-    const Tri = ({id, label, r, setR, gr, setGr, grade, hint}) => {
-        const v = r[id];
-        const set = (x) => {
-            const nuovo = v === x ? undefined : x;
-            setR(p => { const n = {...p}; if (nuovo === undefined) delete n[id]; else n[id] = nuovo; return n; });
-            if (nuovo !== 'p' && grade) setGr(p => { const n = {...p}; delete n[id]; return n; });
-        };
-        const setG = (g) => setGr(p => { const n = {...p}; if (n[id] === g) delete n[id]; else n[id] = g; return n; });
-        const bt = (on, cls) => `px-2 py-1 text-xs border-r last:border-r-0 ${on ? cls : 'bg-white text-gray-600 hover:bg-gray-50'}`;
-        return (
-            <div className="py-1.5 border-t border-dotted border-gray-200 first:border-t-0">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-sm text-gray-700 flex-1 min-w-[10rem]">{label}</span>
-                    <div className="flex flex-wrap items-center gap-2">
-                        {grade && v === 'p' && (
-                            <div className="inline-flex border rounded overflow-hidden">
-                                {GRADI_UI.map(([g,l]) => <button key={g} type="button" aria-pressed={gr[id]===g} onClick={()=>setG(g)} className={bt(gr[id]===g,'bg-amber-600 text-white')}>{l}</button>)}
-                            </div>
-                        )}
-                        <div className="inline-flex border rounded overflow-hidden">
-                            <button type="button" aria-pressed={v==='a'} onClick={()=>set('a')} className={bt(v==='a','bg-teal-700 text-white')}>Assente</button>
-                            <button type="button" aria-pressed={v==='p'} onClick={()=>set('p')} className={bt(v==='p','bg-red-700 text-white')}>Presente</button>
-                        </div>
-                    </div>
-                </div>
-                {hint && <p className="text-xs text-gray-400 mt-0.5">{hint}</p>}
-                {v === undefined && <p className="text-xs text-gray-400 italic">non valutato</p>}
-            </div>
-        );
-    };
+var form=document.getElementById('form');
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
+function seg(cls){var s=el('div','seg '+(cls||''));s.setAttribute('role','group');return s}
+function btn(txt,cls,on){var b=el('button',cls,txt);b.type='button';b.setAttribute('aria-pressed','false');b.addEventListener('click',on);return b}
+var refresh=[];
 
-    // Scelta singola (toggle): ripremere il pulsante riporta il campo a "non valutato".
-    const Scelta = ({label, value, onChange, options}) => (
-        <div className="py-1.5 border-t border-dotted border-gray-200 first:border-t-0 flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm text-gray-700 flex-1 min-w-[10rem]">{label}</span>
-            <div className="inline-flex border rounded overflow-hidden">
-                {options.map(([k,l]) => (
-                    <button key={String(k)} type="button" aria-pressed={value===k} onClick={()=>onChange(value===k ? undefined : k)}
-                        className={`px-2 py-1 text-xs border-r last:border-r-0 ${value===k ? 'bg-gray-800 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>{l}</button>
-                ))}
-            </div>
-        </div>
-    );
-    const SiNo = (p) => <Scelta {...p} options={[[true, p.si || 'Sì'],[false, p.no || 'No']]}/>;
-
-    function Blocco({titolo, children, nota}) {
-        return (
-            <div className="bg-white rounded-lg shadow-md p-5">
-                <h2 className="text-lg font-bold text-gray-800 mb-2 border-b pb-2">{titolo}</h2>
-                {nota && <p className="text-xs text-gray-500 mb-2">{nota}</p>}
-                {children}
-            </div>
-        );
+LAYOUT.forEach(function(sec){
+  var blk=el('section','blk'+(sec.cls?' '+sec.cls:''));blk.appendChild(el('h2','',sec.t));
+  if(sec.sub)blk.appendChild(el('p','sub',sec.sub));
+  if(sec.note)blk.appendChild(el('p','ctxnote',sec.note));
+  if(sec.import){
+    var lab=el('label','btn','📂 Importa dati clinici da modulo (.json)');lab.style.display='inline-block';lab.style.marginBottom='8px';
+    var f=document.createElement('input');f.type='file';f.accept='.json';f.hidden=true;f.addEventListener('change',importa);lab.appendChild(f);blk.appendChild(lab);
+    var banner=el('div','imp');banner.id='imp-banner';banner.hidden=true;blk.appendChild(banner);
+  }
+  sec.rows.forEach(function(r){
+    var row=el('div','row');
+    var lb=el('div','lb',r.label);row.appendChild(lb);
+    var ctl=el('div','ctl');row.appendChild(ctl);
+    if(r.cond)refresh.push(function(){row.hidden=!r.cond()});
+    if(r.k==='num'){
+      var inp=document.createElement('input');inp.type='number';inp.min='0';inp.step=r.step||'any';inp.setAttribute('aria-label',r.label);
+      inp.addEventListener('input',function(){setP(r.id,inp.value);render()});
+      ctl.appendChild(inp);
+      refresh.push(function(){var v=getP(r.id);if(document.activeElement!==inp)inp.value=v==null?'':v});
     }
+    if(r.k==='ap'||r.k==='apg'){
+      var s=seg(),ba=btn('Assente','neg',function(){togg(r.id,'a')}),bp=btn('Presente','pos',function(){togg(r.id,'p')});
+      s.appendChild(ba);s.appendChild(bp);ctl.appendChild(s);
+      var nv=el('div','nv','non valutato');row.appendChild(nv);
+      var gb=[],g=null;
+      if(r.k==='apg'){
+        g=seg('gr');GR.forEach(function(x){var b=btn(x[1],'',function(){setGr(r.id,x[0])});g.appendChild(b);gb.push([x[0],b])});
+        ctl.insertBefore(g,s);
+      }
+      refresh.push(function(){var v=st.r[r.id];
+        ba.setAttribute('aria-pressed',String(v==='a'));bp.setAttribute('aria-pressed',String(v==='p'));nv.hidden=v!==undefined;
+        if(g){g.hidden=v!=='p';gb.forEach(function(p){p[1].setAttribute('aria-pressed',String(st.gr[r.id]===p[0]))})}});
+    }
+    if(r.k==='ch'){
+      var s2=seg(),bs=[];
+      r.o.forEach(function(o){var b=btn(o[1],'neu',function(){setP(r.id,getP(r.id)===o[0]?undefined:o[0]);sync()});s2.appendChild(b);bs.push([o[0],b])});
+      ctl.appendChild(s2);
+      refresh.push(function(){bs.forEach(function(p){p[1].setAttribute('aria-pressed',String(getP(r.id)===p[0]))})});
+    }
+    if(r.k==='chk'){
+      row.removeChild(lb);row.removeChild(ctl);row.style.display='block';
+      var l2=el('label','chk');var c=document.createElement('input');c.type='checkbox';
+      c.addEventListener('change',function(){setP(r.id,c.checked);render()});
+      l2.appendChild(c);l2.appendChild(el('span','',r.label));row.appendChild(l2);
+      refresh.push(function(){c.checked=!!getP(r.id)});
+    }
+    blk.appendChild(row);
+  });
+  form.appendChild(blk);
+});
 
-    /* ── PAGINA ─────────────────────────────────────────────────────────── */
-    function Checklist() {
-        const [adeq, setAdeq] = useState({ lunghezza:'', livelli:'', inToto:undefined, elastiche:undefined, livelliAggiuntivi:undefined, struttura:undefined });
-        const [r, setR] = useState({});
-        const [gr, setGr] = useState({});
-        const [iel, setIel] = useState(undefined);
-        const [calc, setCalc] = useState(undefined);
-        const [rami, setRami] = useState(undefined);
-        const [congo, setCongo] = useState(undefined);
-        const [igg4, setIgg4] = useState(undefined);
-        const [igg4Hpf, setIgg4Hpf] = useState('');
-        const [igg4Rapporto, setIgg4Rapporto] = useState('');
-        const [ihc, setIhc] = useState({ cd68:false, cd4:false, cd8:false, cd3:false, cd20:false });
-        const [redFlags, setRedFlags] = useState({ linfoidiAtipiche:false, granulomiNecrotizzanti:false, vasculiteNecrotizzante:false });
-        const [clinica, setClinica] = useState({ eta:'', cortisone:undefined, giorniCortisone:'', ves:'', pcr:'', cefalea:undefined, claudicatio:undefined, visivi:undefined, halo:undefined });
-        const [refertoOverride, setRefertoOverride] = useState(null); // null = testo automatico; {text, base} = modificato a mano
-        const [importedFrom, setImportedFrom] = useState(null);
+function togg(id,v){if(st.r[id]===v){delete st.r[id];delete st.gr[id]}else{st.r[id]=v;if(v!=='p')delete st.gr[id]}sync()}
+function setGr(id,g){if(st.r[id]!=='p')return;if(st.gr[id]===g)delete st.gr[id];else st.gr[id]=g;sync()}
+function sync(){refresh.forEach(function(f){f()});render()}
 
-        /* ── IMPORTA DATI CLINICI DA FILE JSON (solo contesto) ─────────── */
-        const importaDatiClinici = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    const d = JSON.parse(ev.target.result);
-                    if (!d._versione || !d._versione.startsWith('GCA-form')) {
-                        alert('File non riconosciuto. Assicurarsi di usare il modulo clinico GCA.');
-                        return;
-                    }
-                    const s = d.sintomi || {}, l = d.laboratorio || {}, img = d.imaging || {}, st0 = d.steroidi || {};
-                    const eta = d.paziente?.ddn ? Math.floor((new Date() - new Date(d.paziente.ddn)) / 31557600000) : '';
-                    // Solo i dati presenti nel file diventano "sì"/"no"; il resto resta non valutato.
-                    setClinica({
-                        eta:             isNaN(eta) ? '' : String(eta),
-                        cefalea:         s.cefalea ? true : undefined,
-                        claudicatio:     s.claudicatio ? true : undefined,
-                        visivi:          s.visus ? true : undefined,
-                        ves:             l.ves || '',
-                        pcr:             l.crp || '',
-                        halo:            img.haloSign ? true : undefined,
-                        cortisone:       st0.siSteroidi ? true : undefined,
-                        giorniCortisone: st0.giorni || '',
-                    });
-                    setImportedFrom({
-                        medico:   d.firmaRichiedente || d.paziente?.medico || 'N.D.',
-                        paziente: `${d.paziente?.cognome || ''}${d.paziente?.ddn ? ' · ' + d.paziente.ddn : ''}`.trim() || 'N.D.',
-                        data:     new Date(d._esportato).toLocaleDateString('it-IT'),
-                    });
-                } catch(err) {
-                    alert('Errore nella lettura del file. File corrotto o formato non valido.');
-                }
-            };
-            reader.readAsText(file);
-            e.target.value = '';
-        };
+function put(id,txt,empty){var e=document.getElementById(id);e.textContent='';if(txt)e.textContent=txt;else if(empty){var s=el('span','ph',empty);e.appendChild(s)}}
+function lista(id,cardId,items,fn){var box=document.getElementById(id);box.textContent='';items.forEach(function(x){box.appendChild(fn(x))});document.getElementById(cardId).hidden=!items.length}
 
-        /* ── MOTORE ──────────────────────────────────────────────────────
-           Tutta la logica sta in engine.js (nessun DOM, eseguibile da Node con
-           `npm test`). Qui restano stato e rendering: la pagina e i test
-           percorrono la stessa funzione, runCase(). */
-        const st = { adeq, r, gr, iel, calc, rami, congo, igg4, igg4Hpf, igg4Rapporto, ihc, redFlags, clinica };
-        const R = runCase(st);
-        const refertoText = refertoOverride !== null ? refertoOverride.text : R.referto;
-        const refertoObsoleto = refertoOverride !== null && refertoOverride.base !== R.referto;
-        const bloccato = R.classe === 'inadeguato';
+var cur='';
+function render(){
+  var R=runCase(st);
+  put('o-macro',R.macro,'');
+  put('o-micro',R.micro,'Compila i reperti per comporre la microscopia.');
+  var rf=(R.referto.match(/REPERTI INATTESI:\n([\s\S]*?)\n\nDiagnosi:/)||[])[1]||'';
+  put('o-rf',rf,'');document.getElementById('c-rf').hidden=!rf;
+  put('o-cls',R.titolo+(R.subordinata?' — subordinata a DD alternativa':''),'');
+  put('o-dx',R.diagnosi,'');
+  put('o-nota',R.nota,'');
+  lista('o-crit','c-crit',R.criticita,function(x){return el('p','',x)});
+  lista('o-avv','c-avv',R.avvisi,function(x){return el('p','',x)});
+  lista('o-ihc','c-ihc',R.ihcRecs,function(x){return el('p','',x.marker+' ['+x.priority+'] — '+x.reason)});
+  cur=R.referto;
+}
 
-        const resetAll = () => {
-            setAdeq({ lunghezza:'', livelli:'', inToto:undefined, elastiche:undefined, livelliAggiuntivi:undefined, struttura:undefined });
-            setR({}); setGr({}); setIel(undefined); setCalc(undefined); setRami(undefined);
-            setCongo(undefined); setIgg4(undefined); setIgg4Hpf(''); setIgg4Rapporto('');
-            setIhc({ cd68:false, cd4:false, cd8:false, cd3:false, cd20:false });
-            setRedFlags({ linfoidiAtipiche:false, granulomiNecrotizzanti:false, vasculiteNecrotizzante:false });
-            setClinica({ eta:'', cortisone:undefined, giorniCortisone:'', ves:'', pcr:'', cefalea:undefined, claudicatio:undefined, visivi:undefined, halo:undefined });
-            setRefertoOverride(null); setImportedFrom(null);
-        };
-        const T3 = (id, label, grade, hint) => <Tri id={id} label={label} r={r} setR={setR} gr={gr} setGr={setGr} grade={grade} hint={hint}/>;
-        const inp = "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500";
-        const adeguatezzaLabel = R.adeguatezza.conforme === true ? ['Conforme al protocollo del consensus', 'text-green-700']
-            : R.adeguatezza.conforme === false ? ['Non conforme al protocollo (vedi criticità)', 'text-amber-700']
-            : ['Non determinabile: dati di adeguatezza non completi', 'text-gray-500'];
+function importa(e){
+  var file=e.target.files[0];if(!file)return;
+  var rd=new FileReader();
+  rd.onload=function(ev){
+    try{
+      var d=JSON.parse(ev.target.result);
+      if(!d._versione||String(d._versione).indexOf('GCA-form')!==0){alert('File non riconosciuto. Assicurarsi di usare il modulo clinico GCA.');return}
+      var s=d.sintomi||{},l=d.laboratorio||{},img=d.imaging||{},ss=d.steroidi||{},pz=d.paziente||{};
+      var eta=pz.ddn?Math.floor((new Date()-new Date(pz.ddn))/31557600000):'';
+      // solo i dati presenti nel file diventano «sì»; il resto resta non valutato
+      st.clinica={eta:isNaN(eta)?'':String(eta),cefalea:s.cefalea?true:undefined,claudicatio:s.claudicatio?true:undefined,visivi:s.visus?true:undefined,
+        ves:l.ves||'',pcr:l.crp||'',halo:img.haloSign?true:undefined,cortisone:ss.siSteroidi?true:undefined,giorniCortisone:ss.giorni||''};
+      var b=document.getElementById('imp-banner');
+      b.textContent='✓ Dati clinici importati — verificare i dati precompilati; i campi assenti nel file restano non valutati. Medico: '+(d.firmaRichiedente||pz.medico||'N.D.')+' · '+new Date(d._esportato).toLocaleDateString('it-IT');
+      b.hidden=false;sync();
+    }catch(err){alert('Errore nella lettura del file. File corrotto o formato non valido.')}
+  };
+  rd.readAsText(file);e.target.value='';
+}
 
-        /* ── RENDER ──────────────────────────────────────────────────────── */
-        return (
-        <div className="max-w-6xl mx-auto p-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+document.getElementById('reset').addEventListener('click',function(){reset();document.getElementById('imp-banner').hidden=true;sync()});
+document.getElementById('copy').addEventListener('click',function(){
+  var t=cur,b=document.getElementById('copy'),old=b.textContent;
+  function ok(){b.textContent='Copiato';setTimeout(function(){b.textContent=old},1400)}
+  function fb(){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok()}catch(e){b.textContent='Seleziona e copia'}document.body.removeChild(ta)}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(ok,fb)}else fb();
+});
 
-            {/* HEADER */}
-            <div className="bg-white rounded-lg shadow-xl p-6 mb-6">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-bold text-indigo-900 mb-2">Checklist per la biopsia dell'arteria temporale</h1>
-                        <p className="text-gray-600 text-sm">Classificazione qualitativa dei reperti istologici secondo il consensus SCVP 2023 — <em>nessun punteggio</em></p>
-                    </div>
-                    <button onClick={resetAll} className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300" title="Azzera tutti i campi">
-                        <RotateCcw size={20}/><span className="font-medium">Reset</span>
-                    </button>
-                </div>
-                <div className="mt-4 p-3 bg-amber-50 border border-amber-300 rounded-md">
-                    <p className="text-xs text-amber-800">
-                        <strong>Avvertenza metodologica:</strong> la categoria dipende solo dai reperti istologici inseriti; la clinica è contesto e non la modifica mai. La domanda decisiva è se la media è infiammata (nell'asse o in un ramo): in tal caso è arterite attiva, con o senza cellule giganti. Un reperto non compilato è «non valutato», non «assente». La classificazione come arterite a cellule giganti resta clinica. Non implementa i criteri ACR/EULAR 2022. <strong>La diagnosi rimane responsabilità del patologo refertante.</strong>
-                    </p>
-                </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-
-            {/* ═══ COLONNA SINISTRA: INPUT ═══ */}
-            <div className="space-y-6">
-
-                <Blocco titolo="1. Adeguatezza del campione" nota="Protocollo del consensus: incluso in toto, sezioni trasversali a 1-2 mm, almeno 5 livelli, colorazione per le elastiche. Non cambiano la categoria: generano criticità.">
-                    <div className="grid grid-cols-2 gap-3 mb-2">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Lunghezza (mm)</label>
-                            <input type="number" step="0.5" value={adeq.lunghezza} onChange={e=>setAdeq({...adeq,lunghezza:e.target.value})} className={inp} placeholder="es. 15"/>
-                            <p className="text-xs text-gray-400 mt-1">Dato descritto nel referto; nessuna soglia.</p>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Livelli esaminati in EE</label>
-                            <input type="number" step="1" min="0" value={adeq.livelli} onChange={e=>setAdeq({...adeq,livelli:e.target.value})} className={inp} placeholder="es. 6"/>
-                            <p className="text-xs text-gray-400 mt-1">Consensus: almeno 5.</p>
-                        </div>
-                    </div>
-                    <SiNo label="Struttura arteriosa identificabile (intima, media, avventizia)" value={adeq.struttura} onChange={v=>setAdeq({...adeq,struttura:v})}/>
-                    <SiNo label="Incluso in toto, sezionato a 1-2 mm dopo la processazione" value={adeq.inToto} onChange={v=>setAdeq({...adeq,inToto:v})}/>
-                    <SiNo label="Colorazione per le elastiche" si="Eseguita" no="Non eseguita" value={adeq.elastiche} onChange={v=>setAdeq({...adeq,elastiche:v})}/>
-                    <SiNo label="Livelli aggiuntivi più profondi" si="Eseguiti" no="Non eseguiti" value={adeq.livelliAggiuntivi} onChange={v=>setAdeq({...adeq,livelliAggiuntivi:v})}/>
-                    {!bloccato && <p className={`text-xs mt-2 font-medium ${adeguatezzaLabel[1]}`}>{adeguatezzaLabel[0]}</p>}
-                </Blocco>
-
-                <Blocco titolo="2. Media" nota="Il reperto decisivo: infiltrato infiammatorio della media, di qualunque grado.">
-                    {T3('m_inf','Infiltrato infiammatorio della media', true)}
-                    {T3('m_epi','Istiociti epitelioidi')}
-                    {T3('m_gig','Cellule giganti', false, 'Utili ma non necessarie; non sufficienti senza infiammazione della media')}
-                    {T3('m_nec','Necrosi fibrinoide')}
-                    {T3('m_fib','Fibrosi sostitutiva', true)}
-                    {T3('m_eos','Eosinofili')}
-                    {T3('m_pla','Plasmacellule')}
-                    <Scelta label="Rami collaterali nel campione" value={rami} onChange={setRami}
-                        options={[['a','Assenti'],['n','Media indenne'],['i','Media infiammata']]}/>
-                </Blocco>
-
-                <Blocco titolo="3. Intima ed elastica interna">
-                    {T3('i_fib','Ispessimento fibroso intimale', true)}
-                    {T3('i_inf','Infiltrato infiammatorio intimale', true)}
-                    <Scelta label="Elastica interna" value={iel} onChange={setIel} options={[['c','Conservata'],['f','Frammentata / interrotta']]}/>
-                    <p className="text-xs text-gray-400">Rotture focali o multifocali sono comuni anche senza arterite: da sole non indicano arterite attiva.</p>
-                    <Scelta label="Calcificazioni" value={calc} onChange={setCalc} options={[['a','Assenti'],['i','Elastica interna'],['m','Media'],['b','Entrambe']]}/>
-                </Blocco>
-
-                <Blocco titolo="4. Avventizia e periavventizia" nota="L'infiammazione solo avventiziale è aspecifica e non è arterite attiva: impone livelli più profondi.">
-                    {T3('a_inf','Infiltrato infiammatorio cronico', true)}
-                    {T3('a_vv','Vasa vasorum coinvolti')}
-                    {T3('a_fib','Ispessimento fibroso', true)}
-                    {T3('a_neo','Neovasi')}
-                </Blocco>
-
-                <Blocco titolo="5. Altri reperti per la diagnosi differenziale">
-                    {T3('g_gran','Granulomi')}
-                    {T3('g_neu','Neutrofili / microtrombi')}
-                    {T3('g_amy','Materiale amorfo eosinofilo')}
-                    <Scelta label="rosso Congo" value={congo} onChange={setCongo} options={[['n','Negativo'],['p','Positivo'],['x','Non eseguito']]}/>
-                    {T3('g_tra','Trombo, pseudoaneurisma o duplicazione dell’elastica')}
-                    <Scelta label="IgG4 (immunoistochimica)" value={igg4} onChange={setIgg4} options={[['n','Negativa'],['p','Positiva'],['x','Non eseguita']]}/>
-                    {igg4 === 'p' && (
-                        <div className="grid grid-cols-2 gap-3 mt-1">
-                            <div><label className="block text-xs text-gray-600 mb-1">IgG4+ per HPF</label><input type="number" value={igg4Hpf} onChange={e=>setIgg4Hpf(e.target.value)} className={inp}/></div>
-                            <div><label className="block text-xs text-gray-600 mb-1">Rapporto IgG4/IgG (%)</label><input type="number" value={igg4Rapporto} onChange={e=>setIgg4Rapporto(e.target.value)} className={inp}/></div>
-                        </div>
-                    )}
-                </Blocco>
-
-                {/* SEGNALI D'ALLARME */}
-                <div className="bg-white rounded-lg shadow-md p-5 border-2 border-red-200">
-                    <h2 className="text-lg font-bold text-red-800 mb-2 border-b border-red-200 pb-2">⚠ Reperti inattesi (segnali d'allarme)</h2>
-                    <p className="text-xs text-red-600 mb-3">Se presenti: la categoria resta, ma è subordinata all'esclusione del pattern alternativo.</p>
-                    <div className="space-y-3">
-                        {[['linfoidiAtipiche','Cellule linfoidi atipiche intravascolari','Nucleo irregolare/ipercromico nei lumi vascolari o vasa vasorum — anche poche unità sono significative'],
-                          ['granulomiNecrotizzanti','Granulomi con necrosi centrale','Necrosi fibrinoide/caseosa al centro dei granulomi — suggestiva di eziologia infettiva'],
-                          ['vasculiteNecrotizzante','Vasculite necrotizzante / infiltrato neutrofilico prominente con danno di parete','Necrosi fibrinoide della parete o infiltrato polimorfonucleato transmurale — prioritario escludere vasculite ANCA-associata, PAN, arterite infettiva']
-                        ].map(([k,l,d]) => (
-                            <label key={k} className="flex items-start space-x-2 cursor-pointer">
-                                <input type="checkbox" checked={redFlags[k]} onChange={e=>setRedFlags({...redFlags,[k]:e.target.checked})} className="w-4 h-4 mt-0.5 text-red-600 rounded"/>
-                                <span className="text-sm text-gray-700"><strong>{l}</strong><span className="block text-xs text-gray-500 mt-0.5">{d}</span></span>
-                            </label>
-                        ))}
-                    </div>
-                </div>
-
-                {/* IHC ESEGUITA */}
-                <Blocco titolo="6. Marker IHC eseguiti">
-                    <div className="space-y-2">
-                        {[['cd68','CD68','macrofagi/cellule giganti'],['cd4','CD4','T helper'],['cd8','CD8','T citotossici'],['cd3','CD3','pan-T'],['cd20','CD20','linfociti B']].map(([key,name,desc]) => (
-                            <label key={key} className="flex items-center space-x-2 cursor-pointer">
-                                <input type="checkbox" checked={ihc[key]} onChange={e=>setIhc({...ihc,[key]:e.target.checked})} className="w-4 h-4 text-purple-600 rounded"/>
-                                <span className="text-sm text-gray-700"><strong>{name}</strong> ({desc})</span>
-                            </label>
-                        ))}
-                    </div>
-                    <p className="text-xs text-purple-800 mt-3 p-2 bg-purple-50 rounded">Le IHC sono un supporto: non entrano mai nella categoria.</p>
-                </Blocco>
-
-                {/* CONTESTO CLINICO */}
-                <div className="bg-gray-50 rounded-lg shadow-inner p-5 border-2 border-dashed border-gray-400">
-                    <div className="flex items-center justify-between gap-4 mb-2">
-                        <h2 className="text-lg font-bold text-gray-700">7. Contesto clinico</h2>
-                        <label className="cursor-pointer px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-md whitespace-nowrap">
-                            📂 Importa dati clinici
-                            <input type="file" accept=".json" onChange={importaDatiClinici} className="hidden"/>
-                        </label>
-                    </div>
-                    <p className="text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded px-3 py-2 mb-3">
-                        Contesto, non entra nella diagnosi: nessun campo di questa sezione modifica la categoria o la riga di diagnosi. Serve solo per la nota sul cortisone (oltre 7 giorni) e per l'avviso sotto i 50 anni.
-                    </p>
-                    {importedFrom && (
-                        <div className="mb-3 p-2 bg-green-50 border border-green-300 rounded text-xs text-green-800">
-                            <p className="font-semibold">✓ Dati clinici importati</p>
-                            <p className="mt-0.5">Paziente: <strong>{importedFrom.paziente}</strong> · Medico: <strong>{importedFrom.medico}</strong> · {importedFrom.data}</p>
-                            <p className="mt-1 italic text-green-700">Verificare i dati precompilati. I campi assenti nel file restano non valutati.</p>
-                        </div>
-                    )}
-                    <div className="grid grid-cols-2 gap-3 mb-2">
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Età (anni)</label>
-                            <input type="number" value={clinica.eta} onChange={e=>setClinica({...clinica,eta:e.target.value})} className={inp} placeholder="es. 72"/></div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">VES (mm/h)</label>
-                            <input type="number" value={clinica.ves} onChange={e=>setClinica({...clinica,ves:e.target.value})} className={inp} placeholder="es. 95"/></div>
-                    </div>
-                    <SiNo label="Cefalea di nuova insorgenza" value={clinica.cefalea} onChange={v=>setClinica({...clinica,cefalea:v})}/>
-                    <SiNo label="Claudicatio mascellare" value={clinica.claudicatio} onChange={v=>setClinica({...clinica,claudicatio:v})}/>
-                    <SiNo label="Disturbi visivi" value={clinica.visivi} onChange={v=>setClinica({...clinica,visivi:v})}/>
-                    <div className="mb-2"><label className="block text-sm font-medium text-gray-700 mb-1">PCR (valore, come da referto di laboratorio)</label>
-                        <input type="number" value={clinica.pcr} onChange={e=>setClinica({...clinica,pcr:e.target.value})} className={inp}/></div>
-                    <SiNo label="Halo sign ecografico" si="Positivo" no="Negativo" value={clinica.halo} onChange={v=>setClinica({...clinica,halo:v})}/>
-                    <SiNo label="Cortisone già iniziato" value={clinica.cortisone} onChange={v=>setClinica({...clinica,cortisone:v})}/>
-                    {clinica.cortisone === true && (
-                        <div className="ml-4 mt-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Giorni dall'inizio del cortisone alla biopsia</label>
-                            <input type="number" value={clinica.giorniCortisone} onChange={e=>setClinica({...clinica,giorniCortisone:e.target.value})} className={inp} placeholder="es. 5"/>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* ═══ COLONNA DESTRA: OUTPUT ═══ */}
-            <div className="space-y-6">
-
-                {/* CLASSE */}
-                <div className={`rounded-lg shadow-lg p-6 border-2 ${R.color}`}>
-                    <div className="flex items-start space-x-4">
-                        <div className="flex-shrink-0 mt-1">{ICONE[R.icon] || null}</div>
-                        <div className="flex-1">
-                            <h3 className="text-xl font-bold mb-1">{R.titolo}</h3>
-                            {R.subordinata && <p className="text-sm font-semibold text-purple-800 mb-1">Subordinata a DD alternativa (vedi reperti inattesi)</p>}
-                            <p className="text-base font-semibold mb-1">{R.diagnosi}</p>
-                            {R.nota && <p className="text-sm mt-2">{R.nota}</p>}
-                        </div>
-                    </div>
-                </div>
-
-                {/* REPERTI INATTESI */}
-                {!bloccato && (redFlags.linfoidiAtipiche || redFlags.granulomiNecrotizzanti || redFlags.vasculiteNecrotizzante) && (
-                    <div className="rounded-lg shadow-lg p-5 border-2 border-red-600 bg-red-50">
-                        <div className="flex items-center space-x-2 mb-3">
-                            <TriangleAlert className="text-red-700 flex-shrink-0" size={24}/>
-                            <h3 className="text-lg font-bold text-red-800">Pattern orientato verso diagnosi alternativa</h3>
-                        </div>
-                        {redFlags.linfoidiAtipiche && (
-                            <div className="bg-white rounded-md p-3 mb-2 border-l-4 border-red-500">
-                                <p className="font-bold text-red-800 text-sm mb-1">⚠ Sospetto linfoma intravascolare</p>
-                                <p className="text-xs text-gray-700 mb-2">Cellule linfoidi atipiche intravascolari — escludere linfoma intravascolare B o T.</p>
-                                <p className="text-xs font-semibold text-gray-800">IHC urgente: <span className="text-red-700">CD20, CD3, MUM1, Ki67</span></p>
-                                <p className="text-xs text-gray-600 mt-1">Profilo CD20+/MUM1+ compatibile con linfoma intravascolare B a grandi cellule — da integrare con la morfologia complessiva.</p>
-                            </div>
-                        )}
-                        {redFlags.granulomiNecrotizzanti && (
-                            <div className="bg-white rounded-md p-3 mb-2 border-l-4 border-orange-500">
-                                <p className="font-bold text-orange-800 text-sm mb-1">⚠ Sospetta arterite infettiva</p>
-                                <p className="text-xs text-gray-700 mb-2">Granulomi con necrosi centrale. Escludere TBC e micosi invasive.</p>
-                                <p className="text-xs font-semibold text-gray-800">Colorazioni speciali: <span className="text-orange-700">ZN (micobatteri), PAS + GMS (funghi)</span></p>
-                            </div>
-                        )}
-                        {redFlags.vasculiteNecrotizzante && (
-                            <div className="bg-white rounded-md p-3 border-l-4 border-purple-500">
-                                <p className="font-bold text-purple-800 text-sm mb-1">⚠ Vasculite necrotizzante / pattern neutrofilico</p>
-                                <p className="text-xs text-gray-700 mb-2">Necrosi fibrinoide di parete o infiltrato neutrofilico transmurale.</p>
-                                <p className="text-xs font-semibold text-gray-800">DD principale: <span className="text-purple-700">vasculite ANCA-associata (MPA, GPA), PAN</span></p>
-                                <p className="text-xs text-gray-600 mt-1">Sierologia: ANCA con differenziazione MPO/PR3.</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* AVVISI DI CONTESTO */}
-                {R.avvisi.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-md p-5 border-2 border-amber-400">
-                        <h2 className="text-lg font-bold text-amber-800 mb-2">Avviso di contesto clinico</h2>
-                        {R.avvisi.map((a,i) => <p key={i} className="text-xs px-3 py-2 rounded border-l-4 bg-yellow-50 border-yellow-500 text-yellow-800">⚠ {a}</p>)}
-                        <p className="text-xs text-gray-500 mt-2">Non fa parte del testo del referto.</p>
-                    </div>
-                )}
-
-                {/* CRITICITÀ */}
-                {R.criticita.length > 0 && (
-                    <div className="bg-amber-50 rounded-lg shadow-md p-5 border-2 border-amber-500">
-                        <h2 className="text-lg font-bold text-amber-900 mb-2">Criticità</h2>
-                        <ul className="space-y-1 text-sm text-amber-900 list-disc ml-5">
-                            {R.criticita.map((c,i) => <li key={i}>{c}</li>)}
-                        </ul>
-                        <p className="text-xs text-amber-700 mt-2 italic">Le criticità restano fuori dal testo del referto copiato.</p>
-                    </div>
-                )}
-
-                {/* TESTO REFERTO */}
-                <div className="bg-white rounded-lg shadow-md p-5 border-2 border-indigo-300">
-                    <div className="flex items-center justify-between mb-3 border-b pb-2">
-                        <h2 className="text-xl font-bold text-indigo-900">📋 Testo referto</h2>
-                        <div className="flex gap-2">
-                            {refertoOverride !== null && (
-                                <button onClick={()=>setRefertoOverride(null)} className="text-xs px-3 py-1.5 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded border border-yellow-300 font-medium" title="Ripristina il testo auto-generato">↺ Rigenera</button>
-                            )}
-                            <button
-                                onClick={()=>{
-                                    navigator.clipboard.writeText(refertoText).catch(()=>{
-                                        const el = document.createElement('textarea');
-                                        el.value = refertoText;
-                                        document.body.appendChild(el);
-                                        el.select();
-                                        document.execCommand('copy');
-                                        document.body.removeChild(el);
-                                    });
-                                }}
-                                className="text-xs px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded border border-indigo-300 font-medium" title="Copia negli appunti">📋 Copia</button>
-                        </div>
-                    </div>
-                    {refertoOverride !== null && (
-                        <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1 mb-2">✏ Testo modificato manualmente. Clicca "Rigenera" per ripristinare il testo automatico.</p>
-                    )}
-                    {refertoObsoleto && (
-                        <p className="text-xs text-red-700 bg-red-50 border border-red-300 rounded px-2 py-1 mb-2">⛔ I reperti sono cambiati dopo la modifica manuale: il testo qui sotto può non coincidere più con la categoria mostrata. Clicca "Rigenera" o ricontrolla il testo.</p>
-                    )}
-                    <textarea value={refertoText} onChange={e => setRefertoOverride({ text: e.target.value, base: refertoOverride !== null ? refertoOverride.base : R.referto })} rows={16} spellCheck={true}
-                        className="w-full text-sm font-mono text-gray-800 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-400 resize-y leading-relaxed bg-gray-50"
-                        style={{fontFamily:"'Courier New', Courier, monospace", fontSize:'12.5px'}}/>
-                    <p className="text-xs text-gray-400 mt-1.5 italic">Testo generato dai reperti inseriti, modificabile. I campi non valutati sono omessi. I valori segnalati [n] vanno completati a mano.</p>
-                </div>
-
-                {/* RACCOMANDAZIONI IHC */}
-                {R.ihcRecs.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-md p-5">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Suggerimenti IHC (supporto)</h2>
-                        <div className="space-y-3">
-                            {R.ihcRecs.map((rec,i) => (
-                                <div key={i} className="border-l-4 border-purple-400 pl-3 py-2 bg-purple-50 rounded-r">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className="font-bold text-gray-800">{rec.marker}</span>
-                                        <span className={`text-xs font-semibold px-2 py-1 rounded ${rec.color} ${rec.priority==='ALTA'?'bg-red-100':rec.priority==='MEDIA'?'bg-orange-100':'bg-gray-100'}`}>{rec.priority}</span>
-                                    </div>
-                                    <p className="text-sm text-gray-700">{rec.reason}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* PANNELLI IHC STANDARD */}
-                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-5">
-                    <h3 className="font-bold text-purple-900 mb-3">Pannelli IHC standard</h3>
-                    <div className="mb-3 p-2 bg-purple-100 border-l-4 border-purple-600 rounded text-xs text-purple-900 font-medium">
-                        L'immunoistochimica può documentare composizione e topografia dell'infiltrato, ma non sostituisce i criteri morfologici su EE e colorazione per le elastiche. CD68 identifica macrofagi — non fa diagnosi.
-                    </div>
-                    <div className="space-y-3 text-sm">
-                        <div className="bg-white rounded-md p-3 border-l-4 border-green-500">
-                            <p className="font-bold text-green-800 mb-1">BASE</p>
-                            <ul className="text-gray-700 ml-4 space-y-1 text-xs">
-                                <li>EE + colorazione per le elastiche — obbligatorie</li>
-                                <li><strong>CD68</strong> — utile nei casi poveri di cellule giganti; sensibile ma non specifico</li>
-                            </ul>
-                        </div>
-                        <div className="bg-white rounded-md p-3 border-l-4 border-orange-500">
-                            <p className="font-bold text-orange-800 mb-1">COMPLETO (casi dubbi / cortisone prolungato)</p>
-                            <ul className="text-gray-700 ml-4 space-y-1 text-xs">
-                                <li><strong>CD68 + CD4 + CD8</strong> — distribuzione compartimentale</li>
-                                <li><strong>CD20</strong> — solo se infiltrato B-ricco (per IgG4 servono morfologia e rapporto IgG4/IgG)</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                {/* NOTE METODOLOGICHE */}
-                <div className="bg-indigo-50 rounded-lg p-5 text-xs">
-                    <h3 className="font-bold text-indigo-900 mb-2">Note metodologiche (v4.0)</h3>
-                    <ul className="space-y-1 text-indigo-800">
-                        <li><strong>[v4.0]</strong> Riallineamento al consensus SCVP 2023 (Nair et al.). Eliminati score istologico, score clinico e composito: la categoria è qualitativa.</li>
-                        <li><strong>[v4.0]</strong> Media infiammata (asse o ramo), di qualunque grado → A, arterite attiva. Le cellule giganti sono utili ma non necessarie, e non bastano senza infiammazione della media.</li>
-                        <li><strong>[v4.0]</strong> La clinica non modifica mai la categoria: è un pannello di contesto (nota sul cortisone oltre 7 giorni, avviso sotto i 50 anni).</li>
-                        <li><strong>[v4.0]</strong> Ogni reperto ha tre stati — non valutato, assente, presente. Un campo non compilato non vale «assente».</li>
-                        <li><strong>[v4.0]</strong> Rimosse dal referto le raccomandazioni cliniche e le cifre senza fonte. Terminologia: «arterite attiva», «esiti di danno arterioso» (formula prudente: criteri non validati, scarsa riproducibilità).</li>
-                        <li><strong>Limite:</strong> i reperti li decide il patologo; lo strumento ne ordina le conseguenze e non sostituisce il giudizio su EE e colorazione per le elastiche.</li>
-                    </ul>
-                </div>
-            </div>
-            </div>
-
-            {/* BIBLIOGRAFIA */}
-            <div className="mt-6 bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b-2 border-indigo-200 pb-2">Bibliografia di Riferimento</h2>
-                <div className="space-y-4 text-sm">
-                    {(() => {
-                        const sectionStyles = {
-                            indigo: { title:'text-indigo-900', border:'border-indigo-300', link:'text-indigo-600' },
-                            red:    { title:'text-red-900',    border:'border-red-300',    link:'text-red-600'    },
-                            purple: { title:'text-purple-900', border:'border-purple-300', link:'text-purple-600' },
-                            orange: { title:'text-orange-900', border:'border-orange-300', link:'text-orange-600' },
-                            green:  { title:'text-green-900',  border:'border-green-300',  link:'text-green-600'  },
-                            blue:   { title:'text-blue-900',   border:'border-blue-300',   link:'text-blue-600'   },
-                        };
-                        const sections = [
+// bibliografia
+var SEZIONI = [
                             {title:'Criteri diagnostici e linee guida', color:'indigo', refs:[
                                 {auth:'Nair V, Fishbein GA, Padera R, et al.',year:'2023',title:'Consensus statement on the processing, interpretation and reporting of temporal artery biopsy for arteritis',j:'Cardiovasc Pathol.',vol:'67:107574',doi:'10.1016/j.carpath.2023.107574'},
                                 {auth:'Ponte C, Martínez-Morillo M, Koster MJ, et al.',year:'2022',title:'2022 ACR/EULAR classification criteria for giant cell arteritis',j:'Arthritis Rheumatol.',vol:'74(12):1881-1889',doi:'10.1002/art.42325'},
@@ -559,51 +364,22 @@ window.addEventListener('error', function(e){
                                 {auth:'Cavalli G, Tomelleri A, Campochiaro C, et al.',year:'2023',title:'Serum calprotectin and risk of flare in patients with GCA',j:'Rheumatology (Oxford).',vol:'62(11):3617-3623',doi:'10.1093/rheumatology/kead141'},
                             ]},
                         ];
-                        return sections.map(section => {
-                            const s = sectionStyles[section.color];
-                            return (
-                                <div key={section.title}>
-                                    <h3 className={`font-bold ${s.title} mb-2`}>{section.title}</h3>
-                                    <ul className="space-y-2 text-gray-700">
-                                        {section.refs.map((r,i)=>(
-                                            <li key={i} className={`pl-4 border-l-2 ${s.border}`}>
-                                                <strong>{r.auth}</strong> ({r.year}). {r.title}. <em>{r.j}</em> {r.vol}.
-                                                {r.doi && <a href={`https://doi.org/${r.doi}`} target="_blank" rel="noopener noreferrer" className={`${s.link} hover:underline text-xs ml-1`}>DOI</a>}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            );
-                        });
-                    })()}
-                    <div className="mt-4 pt-3 border-t-2 border-gray-200">
-                        <p className="text-xs text-gray-600 italic"><strong>Nota metodologica:</strong> Classificazione qualitativa secondo il consensus SCVP 2023; non è un calcolatore dei criteri ACR/EULAR 2022.</p>
-                    </div>
-                </div>
-            </div>
+(function(){
+  var box=document.getElementById('bib');
+  SEZIONI.forEach(function(sec){
+    box.appendChild(el('h4','',sec.title));
+    var ul=el('ul','');
+    sec.refs.forEach(function(r){
+      var li=el('li','',r.auth+' ('+r.year+'). '+r.title+'. '+r.j+' '+r.vol+'.');
+      if(r.doi){var a=el('a','',' DOI');a.href='https://doi.org/'+r.doi;a.target='_blank';a.rel='noopener noreferrer';li.appendChild(a)}
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+  });
+})();
 
-            {/* FOOTER */}
-            <div className="mt-6 bg-white rounded-lg shadow-md p-4">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="text-xs text-gray-600">
-                        <p>Classificazione qualitativa secondo il consensus SCVP 2023 — non implementa i criteri ACR/EULAR 2022</p>
-                        <p className="mt-1">Strumento di supporto — non sostituisce il giudizio clinico-patologico</p>
-                        <p className="mt-2 text-indigo-600 font-semibold">v4.0.0 — Ottobre 2026</p>
-                        <div className="mt-2 pt-2 border-t border-gray-200">
-                            <a href="https://github.com/Infingardo/arteriti/blob/main/bigino_vasculiti.pdf" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">📄 Bigino vasculiti (PDF)</a>
-                        </div>
-                    </div>
-                    <button onClick={resetAll} className="flex items-center space-x-2 px-5 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg border border-indigo-300 font-medium">
-                        <RotateCcw size={18}/><span>Nuovo caso</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-        );
-    }
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<Checklist/>);
+sync();
+})();
 </script>
 </body>
 </html>

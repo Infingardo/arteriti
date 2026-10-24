@@ -10,6 +10,7 @@
 // 'p' (presente). Un campo non compilato NON vale 'assente'.
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
+import vm from 'node:vm';
 const require = createRequire(import.meta.url);
 const E = require('../engine.js');
 const { runCase, classify, CONCLUSIONI } = E;
@@ -482,12 +483,7 @@ T('purezza', () => {
   check('il motore non contiene JSX', !/<[A-Z]\w+[ /]/.test(engCod));
   ['const classify', 'const generateReferto', 'function classify', 'function generateReferto', 'getIhcRecommendations'].forEach(f =>
     check(`${f} non è duplicata in index.html`, !htmlCod.includes(f)));
-  check('la pagina passa dalla stessa funzione dei test', /const R\s*=\s*runCase\(st\)/.test(html));
-
-  const iconeMotore = [...new Set([...eng.matchAll(/icon:\s*'(\w+)'/g)].map(m => m[1]))];
-  const iconePagina = [...new Set([...html.matchAll(/^\s{8}(\w+):\s*<\w+ className/gm)].map(m => m[1]))];
-  check('il motore emette almeno tre icone', iconeMotore.length >= 3, iconeMotore.join(','));
-  iconeMotore.forEach(i => check(`la pagina sa disegnare l icona "${i}"`, iconePagina.includes(i), `pagina: ${iconePagina.join(',')}`));
+  check('la pagina passa dalla stessa funzione dei test', /runCase\(st\)/.test(html));
 
   // niente più punteggi, composito, modalità clinica, cifre senza fonte
   ['compositeScore', 'histoScore', 'HISTO_MAX', 'calculateScore', 'getDiagnosis', 'suggestClinicalMode', 'clinicalMode', 'getWeights'].forEach(w => {
@@ -502,6 +498,8 @@ T('purezza', () => {
   // referenze del consensus (Nair 2023, refs 13, 14, 33, 40, 56, 58, 50, 59, 60, 21, 24) riportate nella bibliografia
   ['50:1064-1072','38:1360-1370','57:17-21','14:115-119','83:1091-1092','37:1621-1626','25:1181-1192','86:530-532','91:204-209','57:1377-1380','116:1574-1580']
     .forEach(v => check(`la bibliografia riporta la referenza del consensus ${v}`, html.includes(`vol:'${v}'`)));
+  check('la pagina non dipende più da librerie esterne né da vendor/', !/vendor\//.test(html) && !/react|babel|tailwind/i.test(htmlCod));
+  check('lo script della pagina è sintatticamente valido', (() => { const m = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x => x[1]).filter(x => x.trim()); try { m.forEach(c => new vm.Script(c)); return m.length >= 1; } catch (e) { failures.push('  sintassi: ' + e.message); return false; } })());
   check('nessun nuovo URL esterno caricato (script/link/@import)',
     !/<script[^>]+src="https?:/.test(html) && !/<link[^>]+href="https?:/.test(html) && !/@import\s+url\(\s*['"]?https?:/.test(html));
 });

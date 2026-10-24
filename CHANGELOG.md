@@ -18,6 +18,7 @@ Cambio di impianto, non retrocompatibile negli output. Fonte: Nair V, Fishbein G
 - Il referto riporta anche i reperti della media inseriti quando la media non è infiammata o non è valutata (epitelioidi, giganti); reperti di DD con media non infiammata generano una criticità (aggiunta dopo la review: da approvare o togliere).
 - Rami collaterali non valutati → criticità «classe provvisoria» (potrebbero cambiare la classe in A). Livelli non interi non vengono troncati; i giorni di cortisone decimali non perdono la frazione.
 - Bibliografia: aggiunte 11 referenze del consensus (voci 13, 14, 21, 24, 33, 40, 50, 56, 58, 59, 60), trascritte dall'elenco del PDF; testate per presenza.
+- **Interfaccia: la checklist è ora la pagina predefinita.** `index.html` riprende la grafica della checklist interattiva (reperti a sinistra, macroscopia/microscopia/diagnosi/nota a destra, pulsante «Copia referto»), ma usa `engine.js`: restano criticità, avvisi, segnali d'allarme, IHC e il pannello clinico di contesto. Niente più React, Babel, Tailwind né `vendor/` (rimossa); font di sistema al posto di IBM Plex; il testo del referto non è più modificabile a mano nella pagina (si copia e si rifinisce altrove). «Congo red» → «rosso Congo».
 - Rimosso l'ex ramo «Valutazione non affidabile»: l'elastica interna è una scelta unica, l'incoerenza diffusa/focale non esiste più.
 
 ### Prima e dopo: i sei casi del piano
@@ -37,7 +38,7 @@ Discordanza fra biopsie bilaterali 4,4-13% nelle serie, 5,5% nella revisione di 
 
 ### Infrastruttura
 - `engine.js` riscritto: `classify()`, `CONCLUSIONI` per chiave (A-E, inadeguato, incompleto), `criticita()`, `avvisi()`, `generateReferto()`; `runCase()` resta l'unico punto di ingresso di pagina e test.
-- `tests/run.mjs` riscritto prima del motore (falliva per intero su v3.7.0): un input per ogni classe, i sei casi di regressione, classificazione verificata contro un oracolo indipendente su 2 125 764 combinazioni, sette invarianti anche su un campione di 92 451 referti completi. 237 asserzioni.
+- `tests/run.mjs` riscritto prima del motore (falliva per intero su v3.7.0): un input per ogni classe, i sei casi di regressione, classificazione verificata contro un oracolo indipendente su 2 125 764 combinazioni, sette invarianti anche su un campione di 92 451 referti completi. 234 asserzioni.
 
 ### Aperto
 - Campo «Lato» (destra/sinistra) della checklist di riferimento non portato nel referto: non è nel piano §3, da decidere.
