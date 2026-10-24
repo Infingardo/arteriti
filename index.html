@@ -132,15 +132,16 @@ details a{color:var(--teal)}
 <script>
 (function(){
 // Stato letto da engine.js (runCase). Ogni reperto: undefined = non valutato, 'a' = assente, 'p' = presente.
-var st={
+// Stato iniziale: una funzione, cosi' «Azzera» ricrea ogni campo (anche quelli non valutati, cioe' undefined).
+function iniziale(){return {
   adeq:{lunghezza:'',livelli:'',inToto:undefined,elastiche:undefined,livelliAggiuntivi:undefined,struttura:undefined},
-  r:{},gr:{},iel:undefined,calc:undefined,rami:undefined,congo:undefined,igg4:undefined,igg4Hpf:'',igg4Rapporto:'',
+  r:{},gr:{},lato:undefined,iel:undefined,calc:undefined,rami:undefined,congo:undefined,igg4:undefined,igg4Hpf:'',igg4Rapporto:'',
   ihc:{cd68:false,cd4:false,cd8:false,cd3:false,cd20:false},
   redFlags:{linfoidiAtipiche:false,granulomiNecrotizzanti:false,vasculiteNecrotizzante:false},
   clinica:{eta:'',cortisone:undefined,giorniCortisone:'',ves:'',pcr:'',cefalea:undefined,claudicatio:undefined,visivi:undefined,halo:undefined}
-};
-var INIT=JSON.stringify(st,function(k,v){return v===undefined?'__u':v});
-function reset(){var o=JSON.parse(INIT,function(k,v){return v==='__u'?undefined:v});Object.keys(o).forEach(function(k){st[k]=o[k]})}
+}}
+var st=iniziale();
+function reset(){Object.keys(st).forEach(function(k){delete st[k]});Object.assign(st,iniziale())}
 
 function getP(path){return path.split('.').reduce(function(o,k){return o==null?undefined:o[k]},st)}
 function setP(path,v){var a=path.split('.'),o=st;for(var i=0;i<a.length-1;i++)o=o[a[i]];if(v===undefined&&(a[0]==='r'||a[0]==='gr'))delete o[a[a.length-1]];else o[a[a.length-1]]=v}
@@ -148,6 +149,7 @@ function setP(path,v){var a=path.split('.'),o=st;for(var i=0;i<a.length-1;i++)o=
 var SI=[[true,'Sì'],[false,'No']];
 var LAYOUT=[
  {t:'1. Adeguatezza del campione',sub:'Protocollo del consensus: in toto, sezioni a 1-2 mm, almeno 5 livelli, colorazione per le elastiche. Non cambia la categoria: genera criticità.',rows:[
+  {k:'ch',id:'lato',label:'Lato (biopsia bilaterale: una scheda per lato)',o:[['d','Destra'],['s','Sinistra']]},
   {k:'num',id:'adeq.lunghezza',label:'Lunghezza del segmento (mm)',step:'0.5'},
   {k:'num',id:'adeq.livelli',label:'Livelli esaminati in EE (consensus: almeno 5)',step:'1'},
   {k:'ch',id:'adeq.struttura',label:'Struttura arteriosa identificabile (intima, media, avventizia)',o:SI},

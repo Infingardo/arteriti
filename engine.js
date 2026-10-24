@@ -104,7 +104,8 @@ function ddList(st) {
 function macro(st) {
   const lung = parseFloat(st.adeq && st.adeq.lunghezza);
   const L = (!isNaN(lung) && lung > 0) ? String(lung).replace('.', ',') : '[n]';
-  let t = 'Arteria temporale: segmento di ' + L + ' mm di lunghezza';
+  const lato = { d: ' destra', s: ' sinistra' }[st.lato] || '';
+  let t = 'Arteria temporale' + lato + ': segmento di ' + L + ' mm di lunghezza';
   if (st.adeq && st.adeq.inToto === true) t += ', incluso in toto e sezionato a 1-2 mm dopo la processazione';
   return t + '.';
 }

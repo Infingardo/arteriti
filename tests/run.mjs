@@ -253,6 +253,12 @@ T('reperti inseriti non spariscono dal testo', () => {
   check('criticità: reperti di DD con media non infiammata', dd.criticita.some(c => /diagnosi differenziale presenti/.test(c) && /necrosi fibrinoide/.test(c)), dd.criticita.join('|'));
   check('e la criticità non è nel referto', !dd.referto.includes('Reperti di diagnosi differenziale presenti'));
 });
+T('lato', () => {
+  check('senza lato: «Arteria temporale:»', /^Arteria temporale: segmento/.test(runCase(S({ r:{ ...NEG } })).macro));
+  check('destra', /^Arteria temporale destra: segmento/.test(runCase({ ...S({ r:{ ...NEG } }), lato:'d' }).macro));
+  check('sinistra, anche con struttura assente', /^Arteria temporale sinistra: segmento/.test(runCase({ ...S({ adeq:{ struttura:false } }), lato:'s' }).macro));
+  eq('il lato non cambia la categoria', runCase({ ...S({ r:{ m_inf:'p' } }), lato:'d' }).classe, 'A');
+});
 T('valori impossibili', () => {
   const neg = runCase(S({ adeq:{ lunghezza:'-5', livelli:'-3' }, r:{ ...NEG } }));
   check('lunghezza negativa: placeholder, non «-5 mm»', !/-5/.test(neg.macro), neg.macro);
@@ -500,6 +506,7 @@ T('purezza', () => {
     .forEach(v => check(`la bibliografia riporta la referenza del consensus ${v}`, html.includes(`vol:'${v}'`)));
   check('la pagina non dipende più da librerie esterne né da vendor/', !/vendor\//.test(html) && !/react|babel|tailwind/i.test(htmlCod));
   check('lo script della pagina è sintatticamente valido', (() => { const m = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x => x[1]).filter(x => x.trim()); try { m.forEach(c => new vm.Script(c)); return m.length >= 1; } catch (e) { failures.push('  sintassi: ' + e.message); return false; } })());
+  check('«Azzera» ricrea lo stato da una funzione (un JSON.parse con reviver cancellerebbe i campi undefined)', /function iniziale\(\)/.test(html) && /Object\.assign\(st,iniziale\(\)\)/.test(html) && !/JSON\.parse\(INIT/.test(html));
   check('nessun nuovo URL esterno caricato (script/link/@import)',
     !/<script[^>]+src="https?:/.test(html) && !/<link[^>]+href="https?:/.test(html) && !/@import\s+url\(\s*['"]?https?:/.test(html));
 });
