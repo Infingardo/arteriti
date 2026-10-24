@@ -1,8 +1,8 @@
 {
   "name": "gca-temporal-artery-tool",
-  "version": "3.7.0",
+  "version": "4.0.0",
   "private": true,
-  "description": "Checklist morfologico-clinica per la biopsia dell'arteria temporale (GCA)",
+  "description": "Checklist per la biopsia dell'arteria temporale (consensus SCVP 2023)",
   "scripts": {
     "test": "node tests/run.mjs"
   }
