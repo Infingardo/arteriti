@@ -511,6 +511,17 @@ T('purezza', () => {
     !/<script[^>]+src="https?:/.test(html) && !/<link[^>]+href="https?:/.test(html) && !/@import\s+url\(\s*['"]?https?:/.test(html));
 });
 
+section('materiale collegato: terminologia e cifre allineate (D3, D6)');
+T('bigino, flowchart, richiesta', () => {
+  const lega = n => fs.readFileSync(new URL('../' + n, import.meta.url), 'utf8');
+  for (const n of ['bigino_gca_clinici.html', 'flowchart_clinici.html', 'richiesta_biopsia_temporale.html']) {
+    const h = lega(n);
+    check(`${n}: nessuna risorsa esterna caricata (Google Fonts)`, !/googleapis|gstatic/.test(h));
+    check(`${n}: niente «Horton» né «arterite temporale»`, !/Horton|arterite temporale/i.test(h));
+    check(`${n}: niente cifre senza fonte (10–15%, 20–30%, 7–14 giorni)`, !/10\s?[–-]\s?15\s?%|20\s?[–-]\s?30\s?%|7\s?[–-]\s?14\s?(gg|giorni)/.test(h));
+  }
+});
+
 console.log(`\n${fail === 0 ? 'OK' : 'FALLITO'} — ${pass} pass, ${fail} fail`);
 if (failures.length) { console.log('\nFallimenti:'); failures.slice(0, 80).forEach(f => console.log('  ✗ ' + f)); if (failures.length > 80) console.log(`  … e altri ${failures.length - 80}`); }
 process.exit(fail === 0 ? 0 : 1);
