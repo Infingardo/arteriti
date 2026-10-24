@@ -259,7 +259,7 @@ window.addEventListener('error', function(e){
                     {T3('g_gran','Granulomi')}
                     {T3('g_neu','Neutrofili / microtrombi')}
                     {T3('g_amy','Materiale amorfo eosinofilo')}
-                    <Scelta label="Congo red" value={congo} onChange={setCongo} options={[['n','Negativo'],['p','Positivo'],['x','Non eseguito']]}/>
+                    <Scelta label="rosso Congo" value={congo} onChange={setCongo} options={[['n','Negativo'],['p','Positivo'],['x','Non eseguito']]}/>
                     {T3('g_tra','Trombo, pseudoaneurisma o duplicazione dell’elastica')}
                     <Scelta label="IgG4 (immunoistochimica)" value={igg4} onChange={setIgg4} options={[['n','Negativa'],['p','Positiva'],['x','Non eseguita']]}/>
                     {igg4 === 'p' && (

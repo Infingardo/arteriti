@@ -121,7 +121,7 @@ T('E', () => {
   check('E con amiloide e Congo positivo: «Depositi di amiloide» in diagnosi', /Depositi di amiloide\.$/.test(amy.diagnosi), amy.diagnosi);
   const amyNo = runCase(S({ r:{ ...NEG, g_amy:'p' } }));
   check('amorfo senza Congo: niente amiloide in diagnosi', !/amiloide/.test(amyNo.diagnosi));
-  check('amorfo senza Congo: criticità', amyNo.criticita.some(c => /Materiale amorfo senza Congo/.test(c)), amyNo.criticita.join('|'));
+  check('amorfo senza Congo: criticità', amyNo.criticita.some(c => /Materiale amorfo senza rosso Congo/.test(c)), amyNo.criticita.join('|'));
 });
 T('inadeguato e incompleto', () => {
   const inad = runCase(S({ adeq:{ struttura:false }, r:{ m_inf:'p', m_gig:'p' } }));

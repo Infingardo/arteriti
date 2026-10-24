@@ -163,7 +163,7 @@ function micro(st) {
   const al = [];
   if (isP(st, 'g_gran')) al.push('granulomi');
   if (isP(st, 'g_neu')) al.push('neutrofili/microtrombi');
-  if (isP(st, 'g_amy')) al.push('materiale amorfo eosinofilo' + (st.congo === 'p' ? ' (Congo red positivo)' : st.congo === 'n' ? ' (Congo red negativo)' : ''));
+  if (isP(st, 'g_amy')) al.push('materiale amorfo eosinofilo' + (st.congo === 'p' ? ' (rosso Congo positivo)' : st.congo === 'n' ? ' (rosso Congo negativo)' : ''));
   if (isP(st, 'g_tra')) al.push('trombo, pseudoaneurisma o duplicazione dell’elastica');
   if (al.length) out.push((al.length === 1 && !isP(st, 'g_gran') && !isP(st, 'g_neu') ? 'Si osserva ' : 'Si osservano ') + join(al) + '.');
   if (st.igg4 === 'p') out.push('Positiva la ricerca immunoistochimica per IgG4 (' + (st.igg4Hpf || '[n]') + ' plasmacellule IgG4+/HPF; rapporto IgG4/IgG ' + (st.igg4Rapporto || '[n]') + '%).');
@@ -222,8 +222,8 @@ function criticita(st, classe) {
       w.push('Valori IgG4 non plausibili (conta negativa o rapporto IgG4/IgG fuori da 0-100%): ricontrollare prima di usare il testo.');
   }
   if (isP(st, 'm_epi') && isA(st, 'm_inf')) w.push('Istiociti epitelioidi nella media con media segnata priva di infiltrato infiammatorio: reperti incoerenti, ricontrollare.');
-  if (isP(st, 'g_amy') && st.congo !== 'p' && st.congo !== 'n') w.push('Materiale amorfo senza Congo red: eseguire la colorazione.');
-  if (isP(st, 'g_amy') && st.congo === 'n') w.push('Materiale amorfo con Congo red negativo: riconsiderare il reperto.');
+  if (isP(st, 'g_amy') && st.congo !== 'p' && st.congo !== 'n') w.push('Materiale amorfo senza rosso Congo: eseguire la colorazione.');
+  if (isP(st, 'g_amy') && st.congo === 'n') w.push('Materiale amorfo con rosso Congo negativo: riconsiderare il reperto.');
   if (isP(st, 'm_pla') && st.igg4 !== 'p' && st.igg4 !== 'n') w.push('Plasmacellule senza IgG4 immunoistochimica: da eseguire se si considera IgG4-RD (soglie: oltre 50 IgG4+/HPF e rapporto IgG4/IgG oltre 40%, dalla Tab. 2 del consensus, criteri aortici).');
   if (classe === 'A' && st.rami === 'i' && !isP(st, 'm_inf')) w.push('Media interessata solo nel ramo collaterale: per il consensus basta per arterite attiva.');
   if (st.clinica && st.clinica.cortisone === true && giorniCortisone(st) === null) w.push('Cortisone indicato ma durata non specificata: nessuna nota sul timing della biopsia.');
