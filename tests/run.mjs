@@ -507,7 +507,8 @@ T('purezza', () => {
     .forEach(v => check(`la bibliografia riporta la referenza del consensus ${v}`, html.includes(`vol:'${v}'`)));
   check('la pagina non dipende più da librerie esterne né da vendor/', !/vendor\//.test(html) && !/react|babel|tailwind/i.test(htmlCod));
   check('lo script della pagina è sintatticamente valido', (() => { const m = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x => x[1]).filter(x => x.trim()); try { m.forEach(c => new vm.Script(c)); return m.length >= 1; } catch (e) { failures.push('  sintassi: ' + e.message); return false; } })());
-  check('«Azzera» ricrea lo stato da una funzione (un JSON.parse con reviver cancellerebbe i campi undefined)', /function iniziale\(\)/.test(html) && /Object\.assign\(st,iniziale\(\)\)/.test(html) && !/JSON\.parse\(INIT/.test(html));
+  check('il pulsante di reset si chiama «Nuovo caso»', /id="reset" type="button">Nuovo caso</.test(html));
+  check('«Nuovo caso» ricrea lo stato da una funzione (un JSON.parse con reviver cancellerebbe i campi undefined)', /function iniziale\(\)/.test(html) && /Object\.assign\(st,iniziale\(\)\)/.test(html) && !/JSON\.parse\(INIT/.test(html));
   check('nessun nuovo URL esterno caricato (script/link/@import)',
     !/<script[^>]+src="https?:/.test(html) && !/<link[^>]+href="https?:/.test(html) && !/@import\s+url\(\s*['"]?https?:/.test(html));
 });
