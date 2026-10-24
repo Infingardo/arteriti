@@ -499,6 +499,7 @@ T('purezza', () => {
   check('nessuna cifra senza fonte (skip lesion, varianti, 7–14 gg)',
     !/10\s?[–-]\s?15\s?%|20\s?[–-]\s?30\s?%|7\s?[–-]\s?14\s?gg|3\s?[–-]\s?5\s?gg/.test(engCod + htmlCod));
   check('il motore non contiene termini vietati nei testi', !/Horton|arterite temporale|arterite atipica/i.test(engCod));
+  check('la pagina mostra il referto unico (lo stesso testo che si copia)', /id="o-ref"/.test(html) && /put\('o-ref',R\.referto/.test(html) && /cur=R\.referto/.test(html));
   check('il pannello clinico dichiara di non entrare nella diagnosi', /non entra nella diagnosi/.test(html));
   check('la pagina cita il consensus', /Nair/.test(html) && /107574/.test(html));
   // referenze del consensus (Nair 2023, refs 13, 14, 33, 40, 56, 58, 50, 59, 60, 21, 24) riportate nella bibliografia
