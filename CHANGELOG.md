@@ -1,5 +1,10 @@
 # Changelog — Checklist per la biopsia dell'arteria temporale
 
+## Non rilasciato
+- **Materiale collegato allineato alla v4** (D3, D6; i file non sono accoppiati al motore): `richiesta_biopsia_temporale.html` «GCA (arterite temporale di Horton)» → «GCA (arterite a cellule giganti)»; `bigino_gca_clinici.html` toglie «skip lesion 10–15%», «variante senza giganti 20–30%», «7–14 giorni» e riporta il dato del consensus (biopsia idealmente entro 7 giorni dall'inizio del cortisone); `flowchart_clinici.html` già conforme. Restano nel bigino per i clinici, come da D5, le indicazioni su biopsia controlaterale e imaging.
+- **Offline:** tolto l'`@import` di Google Fonts da `bigino_gca_clinici.html`, `flowchart_clinici.html` e `richiesta_biopsia_temporale.html` (il controllo pre-commit lo bloccava): ora font di sistema, layout invariato. CLAUDE.md/AGENTS.md non prevedono più l'eccezione per le pagine ausiliarie.
+- **Non toccato, da decidere:** nel bigino «Sensibilità ~77%», «Campione <10 mm ha scarso valore» e «Biopsia ≥15 mm» non hanno fonte nel repo (D4/D6).
+
 ## v4.0.0 (Ottobre 2026) — riallineamento al consensus SCVP 2023
 
 Cambio di impianto, non retrocompatibile negli output. Fonte: Nair V, Fishbein GA, Padera R, et al. Cardiovasc Pathol 2023;67:107574. Piano e decisioni: `docs/PIANO_riallineamento_consensus_SCVP2023.md`.

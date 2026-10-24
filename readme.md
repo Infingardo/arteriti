@@ -8,7 +8,7 @@ Classificazione qualitativa dei reperti istologici della biopsia dell'arteria te
 
 Aprire `index.html` in un browser moderno (anche da `file://`). Nessuna installazione, nessun server, nessuna rete, nessuna libreria: la pagina è HTML, CSS e JavaScript semplici più `engine.js`. Tema chiaro/scuro automatico, font di sistema.
 
-Gli altri file HTML/PDF sono materiale collegato, indipendente dal calcolatore: `flowchart_clinici.html`, `bigino_gca_clinici.html`, `richiesta_biopsia_temporale.html` (modulo di richiesta clinica, da cui `index.html` può importare i dati). Non sono ancora allineati alla v4 (terminologia e cifre): vanno aggiornati in un passaggio separato. I tre caricano i font IBM Plex da Google Fonts; offline ripiegano sul font di sistema.
+Gli altri file HTML/PDF sono materiale collegato, indipendente dal calcolatore: `flowchart_clinici.html`, `bigino_gca_clinici.html`, `richiesta_biopsia_temporale.html` (modulo di richiesta clinica, da cui `index.html` può importare i dati). Terminologia e cifre sono allineate alla v4 (nessun «Horton», nessuna cifra senza fonte), ma i PDF generati da questi file (`flowchart_clinici.pdf`, `richiesta_biopsia_temporale.pdf`) vanno rigenerati a parte. Nessuno carica risorse esterne: i font sono quelli di sistema.
 
 ## Struttura
 
@@ -68,7 +68,7 @@ Discordanza fra biopsie bilaterali 4,4-13% nelle serie e 5,5% nella revisione di
 npm test
 ```
 
-239 asserzioni. La classificazione è confrontata con la regola del §4 del piano (riscritta nel test, senza riusare il motore) su 2 125 764 combinazioni di reperti, rami, elastica interna e struttura. Su tutto lo spazio la clinica (cinque profili) non cambia categoria né riga di diagnosi. Su un campione di 92 451 casi con referto completo (che varia anche DD, calcificazioni, IgG4, rosso Congo, segnali d'allarme, adeguatezza, cortisone, età) si verifica che: la clinica non cambia i suggerimenti IHC; nessun reperto → mai A né «compatibile»; nessun termine vietato né raccomandazione clinica nel referto; le criticità non compaiono nel testo. Invarianti sull'intero spazio: media infiammata (asse o ramo) → sempre A salvo inadeguato; giganti senza media infiammata → mai A; nessuna voce morta in `CONCLUSIONI`. Il test è stato provato con mutazioni del motore (C senza elastica, D prima di B, soglia età, cortisone, stati non valutati scritti come presenti): tutte intercettate.
+248 asserzioni. La classificazione è confrontata con la regola del §4 del piano (riscritta nel test, senza riusare il motore) su 2 125 764 combinazioni di reperti, rami, elastica interna e struttura. Su tutto lo spazio la clinica (cinque profili) non cambia categoria né riga di diagnosi. Su un campione di 92 451 casi con referto completo (che varia anche DD, calcificazioni, IgG4, rosso Congo, segnali d'allarme, adeguatezza, cortisone, età) si verifica che: la clinica non cambia i suggerimenti IHC; nessun reperto → mai A né «compatibile»; nessun termine vietato né raccomandazione clinica nel referto; le criticità non compaiono nel testo. Invarianti sull'intero spazio: media infiammata (asse o ramo) → sempre A salvo inadeguato; giganti senza media infiammata → mai A; nessuna voce morta in `CONCLUSIONI`. Il test è stato provato con mutazioni del motore (C senza elastica, D prima di B, soglia età, cortisone, stati non valutati scritti come presenti): tutte intercettate.
 
 ## Fonti principali
 
