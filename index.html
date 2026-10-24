@@ -94,7 +94,7 @@ details a{color:var(--teal)}
     <p>Compila i reperti: macroscopia, microscopia, diagnosi e nota si scrivono da sole. Classificazione qualitativa secondo il consensus SCVP 2023 (Nair et al.): nessun punteggio.</p>
   </div>
   <div class="btns">
-    <button class="btn" id="reset" type="button">Azzera</button>
+    <button class="btn" id="reset" type="button">Nuovo caso</button>
     <button class="btn primary" id="copy" type="button">Copia referto</button>
   </div>
 </header>
@@ -136,7 +136,7 @@ details a{color:var(--teal)}
 <script>
 (function(){
 // Stato letto da engine.js (runCase). Ogni reperto: undefined = non valutato, 'a' = assente, 'p' = presente.
-// Stato iniziale: una funzione, cosi' «Azzera» ricrea ogni campo (anche quelli non valutati, cioe' undefined).
+// Stato iniziale: una funzione, cosi' «Nuovo caso» ricrea ogni campo (anche quelli non valutati, cioe' undefined).
 function iniziale(){return {
   adeq:{lunghezza:'',livelli:'',inToto:undefined,elastiche:undefined,livelliAggiuntivi:undefined,struttura:undefined},
   r:{},gr:{},lato:undefined,iel:undefined,calc:undefined,rami:undefined,congo:undefined,igg4:undefined,igg4Hpf:'',igg4Rapporto:'',
