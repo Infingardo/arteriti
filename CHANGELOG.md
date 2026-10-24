@@ -14,7 +14,7 @@ Cambio di impianto, non retrocompatibile negli output. Fonte: Nair V, Fishbein G
 - **Tolte le raccomandazioni cliniche dal referto (D5):** eco-Doppler, PET-TC, biopsia controlaterale, nuovo prelievo, blocco «Limiti interpretativi».
 - **Tolte le cifre senza fonte (D6):** «skip lesion 10-15%», «variante senza giganti 20-30%», «7-14 gg», «3-5 gg», rapporto CD4/CD8 «>2:1».
 - **Tre stati per ogni reperto** (non valutato / assente / presente): un campo non compilato non vale «assente». Se solo la media è valutata come non infiammata, E/D/B/C escono con la criticità «classe provvisoria».
-- **Mantenuti**: segnali d'allarme (categoria subordinata alla DD), raccomandazioni IHC come supporto (riscritte senza composito, mai criterio), importazione dei dati clinici (ora solo contesto).
+- **Mantenuti**: segnali d'allarme (categoria subordinata alla DD), raccomandazioni IHC come supporto (riscritte senza composito, mai criterio), importazione dei dati clinici (ora solo contesto). I suggerimenti IHC non dipendono dalla clinica: il trigger «cortisone oltre 7 giorni» ipotizzato nel piano operativo è stato tolto per coerenza con D2.
 - Il referto riporta anche i reperti della media inseriti quando la media non è infiammata o non è valutata (epitelioidi, giganti); reperti di DD con media non infiammata generano una criticità (aggiunta dopo la review: da approvare o togliere).
 - Rami collaterali non valutati → criticità «classe provvisoria» (potrebbero cambiare la classe in A). Livelli non interi non vengono troncati; i giorni di cortisone decimali non perdono la frazione.
 - Rimosso l'ex ramo «Valutazione non affidabile»: l'elastica interna è una scelta unica, l'incoerenza diffusa/focale non esiste più.
@@ -36,7 +36,7 @@ Discordanza fra biopsie bilaterali 4,4-13% nelle serie, 5,5% nella revisione di 
 
 ### Infrastruttura
 - `engine.js` riscritto: `classify()`, `CONCLUSIONI` per chiave (A-E, inadeguato, incompleto), `criticita()`, `avvisi()`, `generateReferto()`; `runCase()` resta l'unico punto di ingresso di pagina e test.
-- `tests/run.mjs` riscritto prima del motore (falliva per intero su v3.7.0): un input per ogni classe, i sei casi di regressione, classificazione verificata contro un oracolo indipendente su 2 125 764 combinazioni, sette invarianti anche su un campione di 92 451 referti completi. 222 asserzioni.
+- `tests/run.mjs` riscritto prima del motore (falliva per intero su v3.7.0): un input per ogni classe, i sei casi di regressione, classificazione verificata contro un oracolo indipendente su 2 125 764 combinazioni, sette invarianti anche su un campione di 92 451 referti completi. 226 asserzioni.
 
 ### Aperto
 - Campo «Lato» (destra/sinistra) della checklist di riferimento non portato nel referto: non è nel piano §3, da decidere.
